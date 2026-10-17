@@ -38,24 +38,35 @@ jobs:
           http-user-agent: ${{ matrix.config.http-user-agent }}
           use-public-rspm: true
 
+      # Some dependencies' macOS binaries link against XQuartz's X11
+      # libraries (e.g. /opt/X11/lib/libXrender.1.dylib), which GitHub's macOS
+      # runners do not include. Without it, loading clusterProfiler's
+      # dependencies fails in dyn.load().
+      - name: Install XQuartz (macOS)
+        if: runner.os == 'macOS'
+        run: brew install --cask xquartz
+
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
           extra-packages: any::rcmdcheck
           needs: check
 
-      # Bioconductor's prebuilt Windows/macOS binary of DOSE can lag behind
-      # clusterProfiler (e.g. DOSE 4.5.0 binary vs clusterProfiler 4.20.2),
-      # which breaks enrichGO() with "object 'geneID' is not exported by
-      # 'namespace:DOSE'". DOSE is pure R, so install the matching version
-      # from source.
-      - name: Install DOSE from source to match clusterProfiler
+      # On macOS/Windows, Bioconductor's prebuilt binaries of DOSE,
+      # enrichplot and clusterProfiler can come from different releases.
+      # Older clusterProfiler does importFrom(DOSE, geneID), which newer DOSE
+      # no longer exports, so loading it fails with "object 'geneID' is not
+      # exported by 'namespace:DOSE'". All three are pure R, so install them
+      # together from source to get a matching set, then check they load.
+      - name: Install matching DOSE, enrichplot and clusterProfiler from source
         if: runner.os != 'Linux'
         run: |
           if (!requireNamespace("BiocManager", quietly = TRUE)) {
             install.packages("BiocManager", repos = "https://cloud.r-project.org")
           }
-          BiocManager::install("DOSE", type = "source", update = FALSE, ask = FALSE, force = TRUE)
-          packageVersion("DOSE")
+          pkgs <- c("DOSE", "enrichplot", "clusterProfiler")
+          BiocManager::install(pkgs, type = "source", update = FALSE, ask = FALSE, force = TRUE)
+          for (p in pkgs) message(p, " ", packageVersion(p))
+          suppressPackageStartupMessages(library(clusterProfiler))
         shell: Rscript {0}
 
       - uses: r-lib/actions/check-r-package@v2
