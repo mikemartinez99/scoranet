@@ -22,9 +22,9 @@ a CSV file is written. The directory is created if it does not exist.}
 }
 \value{
 A data frame containing all GO terms in the same Leiden cluster as
-\code{go_term}, with columns \code{go_term}, \code{cluster},
-\code{degree}, \code{regulation}, \code{avg_log2FC}, and
-\code{leiden_resolution}. Returns \code{NULL} with a warning if the
+\code{go_term}, with the same columns as \code{go_term_df} in
+\code{\link{generate_overlap_network}} (including \code{regulation},
+\code{avg_log2FC}, \code{median_log2FC}, and \code{zscore}). Returns \code{NULL} with a warning if the
 requested term is not found in the network.
 }
 \description{

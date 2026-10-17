@@ -10,16 +10,30 @@ generate_overlap_network(
   de_genes,
   collection_name = "network",
   overlap_threshold = 0.1,
-  leiden_resolution = 0.03,
+  leiden_resolution = 1,
+  objective_function = c("modularity", "CPM"),
+  seed = 1234,
   outdir = NULL,
   plot_to_screen = TRUE,
-  file_stem = NULL
+  file_stem = NULL,
+  ident1 = NULL,
+  ident2 = NULL,
+  zscore_threshold = 1,
+  theme_label = c("ancestor", "keywords", "phrase", "hub"),
+  theme_min_terms = 3,
+  theme_n_words = 3,
+  theme_ancestor_min_share = 0.15,
+  theme_ancestor_max_size = 1000,
+  theme_max_ancestors = 2
 )
 }
 \arguments{
 \item{results_set}{Data frame with row names equal to GO term descriptions
-and at least one column \code{avg_log2FC} (mean fold-change across member
-genes).}
+and at least the column \code{avg_log2FC} (mean fold-change across member
+genes), as returned by \code{\link{build_network_inputs}}. If it also has
+\code{zscore}, \code{median_log2FC}, \code{n_up}, and \code{n_down}
+columns, node direction is called from the z-score (see
+\code{zscore_threshold}); otherwise from the sign of \code{avg_log2FC}.}
 
 \item{collection}{Named list of character vectors. Each element is a set of
 gene symbols belonging to one GO term. Names must match
@@ -37,21 +51,78 @@ output. Typically formatted as
 \item{overlap_threshold}{Numeric \code{[0, 1]}. Jaccard coefficient below
 which edges are set to zero. Default \code{0.1}.}
 
-\item{leiden_resolution}{Numeric. Resolution parameter for
-\code{igraph::cluster_leiden}. Default \code{0.03}.}
+\item{leiden_resolution}{Numeric. Resolution for Leiden clustering. With
+the default modularity objective, values around 1 are standard; higher
+values give more, smaller clusters. Use \code{\link{plot_leiden_sweep}} to
+choose a value. Default \code{1}.}
+
+\item{objective_function}{Character. Leiden objective passed to
+\code{igraph::cluster_leiden}: \code{"modularity"} (default; resolution
+is comparable across networks) or \code{"CPM"} (constant Potts model;
+resolution acts as an edge-density cutoff and needs much smaller values,
+e.g. 0.03).}
+
+\item{seed}{Integer seed for Leiden clustering and the plot layout, so
+results are reproducible. It does not change the random state of your
+session. \code{NULL} disables seeding. Default \code{1234}.}
 
 \item{outdir}{Character path to the output directory. If \code{NULL},
 no files are written. The directory is created if it does not exist.}
 
 \item{plot_to_screen}{Logical. If \code{TRUE} (default), the Leiden-
-clustered network is also drawn to the active graphics device (e.g.,
-the RStudio Plots pane).}
+clustered plot (\code{plots$leiden}) is also printed to the active
+graphics device (e.g., the RStudio Plots pane).}
 
 \item{file_stem}{Character string used as the filename prefix for all
 exported files. If \code{NULL} or empty, \code{collection_name} is used.}
+
+\item{ident1, ident2}{Character. The numerator and denominator identities of
+the comparison, used in the legend as \code{"Upregulated in <ident1>"}
+and \code{"Upregulated in <ident2>"}. If \code{NULL} (default), they are
+parsed from \code{collection_name} around \code{"_vs_"}.}
+
+\item{zscore_threshold}{Numeric. A node is called \code{"up"} when its
+direction z-score is at least this value, \code{"down"} when it is at
+most minus this value, and \code{"mixed"} otherwise. Default \code{1}.}
+
+\item{theme_label}{Character. Text used to label each cluster in the
+themes plot:
+\describe{
+\item{\code{"ancestor"} (default)}{Up to \code{theme_max_ancestors}
+higher-level GO terms that the cluster's terms fall under in the GO
+hierarchy (via GO.db), with how many of the cluster's terms they
+cover, e.g. \code{"cytokine production / response to cytokine
+      (22/39)"}. Each is chosen to cover many of the remaining terms while
+staying specific. Falls back to the hub term when no
+ancestor qualifies or the results have no GO IDs.}
+\item{\code{"keywords"}}{The most distinctive words in the cluster's
+term names.}
+\item{\code{"phrase"}}{The top term name, as used by the wordclouds.}
+\item{\code{"hub"}}{The cluster's most connected term.}
+}}
+
+\item{theme_min_terms}{Integer. Clusters with fewer terms get a hull but no
+callout label in the themes plot, to limit clutter. They are still listed
+colour-coded in the cluster legend. Default \code{3}.}
+
+\item{theme_n_words}{Integer. Number of keywords per cluster label when
+\code{theme_label = "keywords"}. Default \code{3}.}
+
+\item{theme_ancestor_min_share}{Numeric \code{(0, 1]}. Minimum share of a
+cluster's terms an ancestor must cover to be used as a label. Default
+\code{0.15}.}
+
+\item{theme_ancestor_max_size}{Integer. GO terms with more descendants than
+this are considered too generic to be a label (for reference: "cell
+cycle" has about 800, "response to stress" about 1,300, "cellular
+process" about 16,000). Default \code{1000}.}
+
+\item{theme_max_ancestors}{Integer. Maximum number of ancestors in one
+cluster label. Default \code{2}.}
 }
 \value{
-A list with six elements:
+\code{NULL} (with a message) if no two terms overlap at
+\code{overlap_threshold}. Otherwise a list with the following elements:
 \describe{
 \item{network}{An \code{igraph} graph object with vertex attributes
 \code{fc}, \code{regulation}, \code{size}, \code{cluster},
@@ -61,11 +132,37 @@ A list with six elements:
 \item{overlap_matrix}{Square numeric matrix of pairwise Jaccard
 coefficients (before thresholding).}
 \item{go_term_df}{Data frame with columns \code{go_term},
-\code{cluster}, \code{degree}, \code{regulation}, \code{avg_log2FC},
-and \code{leiden_resolution}.}
+\code{cluster}, \code{degree}, \code{regulation} (\code{"up"},
+\code{"down"}, or \code{"mixed"}), \code{avg_log2FC} (mean),
+\code{median_log2FC}, \code{n_up}, \code{n_down}, \code{zscore},
+\code{go_id}, and \code{leiden_resolution}. The direction columns are
+\code{NA} when \code{results_set} has no z-score columns, and
+\code{go_id} is \code{NA} when it has no GO IDs.}
 \item{cluster_stats}{Data frame with columns \code{cluster},
 \code{avg_degree}, and \code{n_terms}.}
-\item{leiden_resolution}{The resolution value used.}
+\item{leiden_resolution, objective_function, overlap_threshold, seed}{The
+settings used.}
+\item{term_genes}{Named list: for each node (GO term), the DE genes it
+contains. Used by \code{\link{plot_driver_genes}}.}
+\item{cluster_themes}{Data frame with one row per Leiden cluster:
+\code{cluster}, \code{n_terms}; the shared GO ancestors
+(\code{ancestor}, names joined by \code{" / "}; \code{ancestor_id},
+IDs joined by \code{";"}; \code{ancestor_n_covered}, how many of the
+cluster's terms fall under them; \code{NA} if none qualifies); and the
+other candidate labels \code{keywords}, \code{phrase}, and \code{hub}.}
+\item{plots}{A list of \code{ggplot} objects built with \pkg{ggraph}:
+\code{plain} (nodes filled by direction: up, down, or mixed),
+\code{leiden} (nodes filled by Leiden cluster, with the cluster legend
+on the left), and \code{zscore} (nodes filled by a continuous
+blue-white-red gradient of the direction z-score). In \code{plain} and
+\code{leiden}, node shape shows direction (circle = up in
+\code{ident1}, square = up in \code{ident2}, diamond = mixed). Edge
+width shows Jaccard overlap. Cluster colours come from the 40-colour
+dittoSeq palette. \code{themes} is the Leiden plot annotated with
+cluster themes: a shaded hull around each cluster with a callout naming
+its theme, and a layout that keeps each cluster together (so
+node positions differ from the other plots). \code{zscore} is
+\code{NULL} when \code{results_set} has no \code{zscore} column.}
 }
 }
 \description{
@@ -83,10 +180,15 @@ When \code{outdir} is non-\code{NULL}, the following files are written:
 \itemize{
 \item \code{<file_stem>_network_summary.csv} -- node/edge/cluster counts.
 \item \code{<file_stem>-cluster-stats.csv} -- per-cluster average degree.
-\item \code{<file_stem>-plain.png} -- network coloured by regulation
-direction (red = up, blue = down).
-\item \code{<file_stem>-clustered-leiden.png} -- network coloured by
-Leiden cluster membership.
+\item \code{<file_stem>-plain.png} -- \code{plots$plain}: network
+coloured by direction (red = up in \code{ident1}, blue = up in
+\code{ident2}, grey = mixed).
+\item \code{<file_stem>-clustered-leiden.png} -- \code{plots$leiden}:
+network coloured by Leiden cluster membership.
+\item \code{<file_stem>-zscore.png} -- \code{plots$zscore}: network
+coloured by direction z-score.
+\item \code{<file_stem>-themes.png} -- \code{plots$themes}: network
+with labelled cluster-theme hulls.
 }
 }
 

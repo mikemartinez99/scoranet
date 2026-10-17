@@ -1,4 +1,4 @@
 library(testthat)
-library(GDSCtools)
+library(scoranet)
 
-test_check("GDSCtools")
+test_check("scoranet")

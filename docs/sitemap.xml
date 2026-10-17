@@ -1,25 +1,26 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>/404.html</loc></url>
+<url><loc>/DIAGNOSTICS.html</loc></url>
 <url><loc>/LICENSE-text.html</loc></url>
-<url><loc>/articles/Loading-Data.html</loc></url>
-<url><loc>/articles/building-data-and-QC.html</loc></url>
 <url><loc>/articles/index.html</loc></url>
 <url><loc>/articles/network-analysis.html</loc></url>
-<url><loc>/articles/single-cell-gex-qc.html</loc></url>
 <url><loc>/authors.html</loc></url>
 <url><loc>/index.html</loc></url>
-<url><loc>/reference/GDSCtools-package.html</loc></url>
 <url><loc>/reference/build_network_inputs.html</loc></url>
 <url><loc>/reference/generate_overlap_network.html</loc></url>
 <url><loc>/reference/index.html</loc></url>
-<url><loc>/reference/mergeMetadata.html</loc></url>
-<url><loc>/reference/qcScatter.html</loc></url>
-<url><loc>/reference/read_10x_GEX.html</loc></url>
+<url><loc>/reference/plot_comparison_overview.html</loc></url>
+<url><loc>/reference/plot_driver_genes.html</loc></url>
+<url><loc>/reference/plot_leiden_sweep.html</loc></url>
+<url><loc>/reference/plot_overlap_threshold.html</loc></url>
 <url><loc>/reference/run_cluster_de.html</loc></url>
 <url><loc>/reference/run_comparison_networks.html</loc></url>
 <url><loc>/reference/run_go_ora.html</loc></url>
+<url><loc>/reference/run_network_diagnostics.html</loc></url>
+<url><loc>/reference/scoranet-package.html</loc></url>
 <url><loc>/reference/write_cluster_results.html</loc></url>
 <url><loc>/reference/write_cluster_wordclouds_patchwork.html</loc></url>
-<url><loc>/reference/write_de_results.html</loc></url>
+<url><loc>/reference/write_de.html</loc></url>
+<url><loc>/reference/write_go.html</loc></url>
 </urlset>
 

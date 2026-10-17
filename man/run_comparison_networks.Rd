@@ -10,17 +10,29 @@ run_comparison_networks(
   comp_label,
   base_outdir,
   overlap_threshold = 0.1,
-  leiden_resolution = 0.03
+  leiden_resolution = 1,
+  objective_function = c("modularity", "CPM"),
+  seed = 1234,
+  split_direction = FALSE,
+  zscore_threshold = 1,
+  theme_label = c("ancestor", "keywords", "phrase", "hub"),
+  theme_min_terms = 3,
+  theme_n_words = 3,
+  theme_ancestor_min_share = 0.15,
+  theme_ancestor_max_size = 1000,
+  theme_max_ancestors = 2
 )
 }
 \arguments{
-\item{go_list}{A named list of \code{enrichResult} objects (from
-\code{clusterProfiler::enrichGO}), one per cell-type cluster. Names must
-match the names in \code{de_list}.}
+\item{go_list}{A named list of GO results from \code{\link{run_go_ora}}.
+With \code{split_direction = FALSE}, each element is a single
+\code{enrichResult}; with \code{split_direction = TRUE}, each element is
+a list with \code{$up} and \code{$down} \code{enrichResult} objects.
+Names must match the names in \code{de_list}.}
 
-\item{de_list}{A named list of differential-expression data frames, one per
-cluster. Each data frame must contain at least the columns \code{gene}
-(gene symbol) and \code{avg_log2FC}.}
+\item{de_list}{The output of \code{\link{run_cluster_de}}: a named list
+whose elements each contain a \code{$degs} data frame with at least the
+columns \code{gene} (gene symbol) and \code{avg_log2FC}.}
 
 \item{comp_label}{Character string identifying the comparison (e.g.,
 \code{"CD206_Car_vs_Bleo"}). Used to build output sub-directory paths and
@@ -33,22 +45,89 @@ sub-directory \code{<comp_label>/networks/} is created automatically.}
 between two GO term gene sets required to draw an edge. Default
 \code{0.1}.}
 
-\item{leiden_resolution}{Numeric. Resolution parameter passed to
-\code{igraph::cluster_leiden}. Lower values produce fewer, larger
-communities. Default \code{0.03}.}
+\item{leiden_resolution}{Numeric. Resolution for Leiden clustering. With
+the default modularity objective, values around 1 are standard; higher
+values give more, smaller clusters. Use \code{\link{plot_leiden_sweep}} to
+choose a value. Default \code{1}.}
+
+\item{objective_function}{Character. Leiden objective passed to
+\code{igraph::cluster_leiden}: \code{"modularity"} (default; resolution
+is comparable across networks) or \code{"CPM"} (constant Potts model;
+resolution acts as an edge-density cutoff and needs much smaller values,
+e.g. 0.03).}
+
+\item{seed}{Integer seed for Leiden clustering and the plot layout, so
+results are reproducible. It does not change the random state of your
+session. \code{NULL} disables seeding. Default \code{1234}.}
+
+\item{split_direction}{Logical. Set to \code{TRUE} when \code{go_list} comes
+from \code{run_go_ora(split_direction = TRUE)}. Each direction is then
+built from its own results and only the DEGs in that direction
+(\code{avg_log2FC > 0} for up, \code{< 0} for down). Must match the
+structure of \code{go_list}; a mismatch is an error. Default \code{FALSE}.}
+
+\item{zscore_threshold}{Numeric. Passed to
+\code{\link{generate_overlap_network}}: nodes with a direction z-score of
+at least this value are called up, at most minus this value down, and
+mixed otherwise. Default \code{1}.}
+
+\item{theme_label}{Character. Text used to label each cluster in the
+themes plot:
+\describe{
+\item{\code{"ancestor"} (default)}{Up to \code{theme_max_ancestors}
+higher-level GO terms that the cluster's terms fall under in the GO
+hierarchy (via GO.db), with how many of the cluster's terms they
+cover, e.g. \code{"cytokine production / response to cytokine
+      (22/39)"}. Each is chosen to cover many of the remaining terms while
+staying specific. Falls back to the hub term when no
+ancestor qualifies or the results have no GO IDs.}
+\item{\code{"keywords"}}{The most distinctive words in the cluster's
+term names.}
+\item{\code{"phrase"}}{The top term name, as used by the wordclouds.}
+\item{\code{"hub"}}{The cluster's most connected term.}
+}}
+
+\item{theme_min_terms}{Integer. Clusters with fewer terms get a hull but no
+callout label in the themes plot, to limit clutter. They are still listed
+colour-coded in the cluster legend. Default \code{3}.}
+
+\item{theme_n_words}{Integer. Number of keywords per cluster label when
+\code{theme_label = "keywords"}. Default \code{3}.}
+
+\item{theme_ancestor_min_share}{Numeric \code{(0, 1]}. Minimum share of a
+cluster's terms an ancestor must cover to be used as a label. Default
+\code{0.15}.}
+
+\item{theme_ancestor_max_size}{Integer. GO terms with more descendants than
+this are considered too generic to be a label (for reference: "cell
+cycle" has about 800, "response to stress" about 1,300, "cellular
+process" about 16,000). Default \code{1000}.}
+
+\item{theme_max_ancestors}{Integer. Maximum number of ancestors in one
+cluster label. Default \code{2}.}
 }
 \value{
-A named list of network result lists (one per cluster that produced
-a valid network). Each element is the list returned by
-\code{\link{generate_overlap_network}}.
+A flat named list of network result lists, one per network that
+could be built. Each element is the list returned by
+\code{\link{generate_overlap_network}}. Names are the cluster names (with
+\code{"/"} replaced by \code{"_"}), plus a \code{"_up"} or \code{"_down"}
+suffix when \code{split_direction = TRUE}.
 }
 \description{
 Iterates over every cluster in a named list of GO enrichment results,
 builds a Jaccard-overlap network of enriched GO terms, applies Leiden
 community detection, and saves network plots and summary tables. Clusters
 that lack enrichment results or have fewer than two significant pathways
-are skipped with a message.
+are skipped with a message. With \code{split_direction = TRUE}, a separate
+network is built for the up- and down-regulated results of each cluster.
 }
+\section{Output files}{
+
+Files are written to \code{<base_outdir>/<comp_label>/networks/} with the
+file stem \code{<cluster>} (or \code{<cluster>_up} / \code{<cluster>_down}
+when split). See \code{\link{generate_overlap_network}} for the file list.
+}
+
 \seealso{
 \code{\link{build_network_inputs}},
 \code{\link{generate_overlap_network}}
