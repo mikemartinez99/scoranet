@@ -5,6 +5,8 @@
  ![Version](https://img.shields.io/badge/version-0.1.0-blue)
  [![docs: pkgdown](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://mikemartinez99.github.io/scoranet/)
  ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+[![Codecov test coverage](https://codecov.io/gh/mikemartinez99/scoranet/graph/badge.svg)](https://app.codecov.io/gh/mikemartinez99/scoranet)
+
 
 📖 **Documentation and vignette:** [mikemartinez99.github.io/scoranet](https://mikemartinez99.github.io/scoranet/)
 
