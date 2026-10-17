@@ -34,3 +34,16 @@
 .or_default <- function(x, y) {
   if (is.null(x)) y else x
 }
+
+# Output directory built from one or more path parts, created if missing, and
+# returned with exactly one trailing "/" so file names can be appended with
+# paste0(). Parts may be given with or without trailing slashes.
+.as_dir <- function(...) {
+  parts <- c(...)
+  parts[-1] <- sub("^/+", "", parts[-1])
+  parts <- sub("/+$", "", parts)
+  path <- do.call(file.path, as.list(parts[nzchar(parts) | seq_along(parts) == 1]))
+  if (!nzchar(path)) path <- "/"
+  if (!dir.exists(path)) dir.create(path, recursive = TRUE)
+  if (grepl("/$", path)) path else paste0(path, "/")
+}

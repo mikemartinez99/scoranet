@@ -39,8 +39,9 @@ columns \code{gene} (gene symbol) and \code{avg_log2FC}.}
 \code{"CD206_Car_vs_Bleo"}). Used to build output sub-directory paths and
 as a prefix in plot titles.}
 
-\item{base_outdir}{Character path to the root output directory. A
-sub-directory \code{<comp_label>/networks/} is created automatically.}
+\item{base_outdir}{Character path to the root output directory, with or
+without a trailing \code{/}. A sub-directory
+\code{<comp_label>/networks/} is created automatically.}
 
 \item{overlap_threshold}{Numeric \code{[0, 1]}. Minimum Jaccard overlap
 between two GO term gene sets required to draw an edge. Default
@@ -68,7 +69,7 @@ built from its own results and only the DEGs in that direction
 structure of \code{go_list}; a mismatch is an error. Default \code{FALSE}.}
 
 \item{zscore_threshold}{Numeric. Passed to
-\code{\link{generate_overlap_network}}: nodes with a direction z-score of
+\code{\link{generate_overlap_network}}: nodes with a direction score of
 at least this value are called up, at most minus this value down, and
 mixed otherwise. Default \code{1}.}
 

@@ -102,8 +102,9 @@ as a prefix in plot titles.</p></dd>
 
 
 <dt id="arg-base-outdir">base_outdir<a class="anchor" aria-label="anchor" href="#arg-base-outdir"></a></dt>
-<dd><p>Character path to the root output directory. A
-sub-directory <code>&lt;comp_label&gt;/networks/</code> is created automatically.</p></dd>
+<dd><p>Character path to the root output directory, with or
+without a trailing <code>/</code>. A sub-directory
+<code>&lt;comp_label&gt;/networks/</code> is created automatically.</p></dd>
 
 
 <dt id="arg-overlap-threshold">overlap_threshold<a class="anchor" aria-label="anchor" href="#arg-overlap-threshold"></a></dt>
@@ -143,7 +144,7 @@ structure of <code>go_list</code>; a mismatch is an error. Default <code>FALSE</
 
 <dt id="arg-zscore-threshold">zscore_threshold<a class="anchor" aria-label="anchor" href="#arg-zscore-threshold"></a></dt>
 <dd><p>Numeric. Passed to
-<code><a href="generate_overlap_network.html">generate_overlap_network</a></code>: nodes with a direction z-score of
+<code><a href="generate_overlap_network.html">generate_overlap_network</a></code>: nodes with a direction score of
 at least this value are called up, at most minus this value down, and
 mixed otherwise. Default <code>1</code>.</p></dd>
 

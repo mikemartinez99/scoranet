@@ -42,8 +42,11 @@ universe is the \code{gene} column of \code{de_list[[cluster]]$tested}
 \item{keyType}{Character string specifying the gene identifier type.
 Default \code{"SYMBOL"}.}
 
-\item{qvalueCutoff}{Numeric. q-value (BH-adjusted p-value) threshold for
-retaining enriched terms. Default \code{0.1}.}
+\item{qvalueCutoff}{Numeric. Threshold on the Storey q-value (the
+\code{qvalue} column, an estimate of the false discovery rate from the
+\pkg{qvalue} method) for retaining enriched terms. This is separate from
+the Benjamini-Hochberg adjusted p-value in \code{p.adjust}, which
+\code{enrichGO} filters at 0.05. Default \code{0.1}.}
 
 \item{ont}{Character string specifying the GO sub-ontology to test:
 \code{"BP"} (Biological Process), \code{"MF"} (Molecular Function),
@@ -71,7 +74,9 @@ this are treated as redundant. Higher values remove fewer terms. Only used
 when \code{simplify = TRUE}. Default \code{0.7}.}
 
 \item{outputDir}{Character path to the directory where the QC summary CSV
-is written. Created if it does not exist.}
+is written, with or without a trailing \code{/}. Created if it does not
+exist. If \code{NULL} (default), no file is written; the QC summary is
+still printed and attached to the result as the \code{"qc"} attribute.}
 
 \item{outname}{Character filename for the QC summary CSV. Default
 \code{"GO_ORA_QC_summary.csv"}.}

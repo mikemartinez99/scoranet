@@ -18,8 +18,9 @@
 #' @param comp_label Character string identifying the comparison (e.g.,
 #'   \code{"CD206_Car_vs_Bleo"}). Used to build output sub-directory paths and
 #'   as a prefix in plot titles.
-#' @param base_outdir Character path to the root output directory. A
-#'   sub-directory \code{<comp_label>/networks/} is created automatically.
+#' @param base_outdir Character path to the root output directory, with or
+#'   without a trailing \code{/}. A sub-directory
+#'   \code{<comp_label>/networks/} is created automatically.
 #' @param overlap_threshold Numeric \code{[0, 1]}. Minimum Jaccard overlap
 #'   between two GO term gene sets required to draw an edge. Default
 #'   \code{0.1}.
@@ -41,7 +42,7 @@
 #'   (\code{avg_log2FC > 0} for up, \code{< 0} for down). Must match the
 #'   structure of \code{go_list}; a mismatch is an error. Default \code{FALSE}.
 #' @param zscore_threshold Numeric. Passed to
-#'   \code{\link{generate_overlap_network}}: nodes with a direction z-score of
+#'   \code{\link{generate_overlap_network}}: nodes with a direction score of
 #'   at least this value are called up, at most minus this value down, and
 #'   mixed otherwise. Default \code{1}.
 #' @param plot_types Character. The \code{\link{plot_network}} types saved
@@ -121,8 +122,7 @@ run_comparison_networks <- function(
 ) {
 
   theme_label <- match.arg(theme_label)
-  net_outdir <- paste0(base_outdir, comp_label, "/networks/")
-  if (!dir.exists(net_outdir)) dir.create(net_outdir, recursive = TRUE)
+  net_outdir <- .as_dir(base_outdir, comp_label, "networks")
 
   .is_split <- function(x) {
     is.list(x) && !is.data.frame(x) && any(c("up", "down") %in% names(x))
@@ -266,10 +266,13 @@ run_comparison_networks <- function(
 #'         negative fold change.}
 #'       \item{go_id}{GO ID of the term (\code{NA} if \code{ego} has no
 #'         \code{ID} column).}
-#'       \item{zscore}{Direction z-score,
+#'       \item{zscore}{Direction score,
 #'         \eqn{(n_{up} - n_{down}) / \sqrt{n_{up} + n_{down}}}, as used by
 #'         GOplot. Large positive values mean the term's genes are
-#'         consistently up; values near 0 mean mixed.}
+#'         consistently up; values near 0 mean mixed. It has the form of a
+#'         z-score but is descriptive: the genes are correlated and were
+#'         selected as DEGs, so it has no calibrated null distribution and
+#'         should not be converted to a p-value.}
 #'     }
 #'     All values are 0 for a term with no DE genes.}
 #'   \item{de_genes}{Character vector of unique DE gene symbols.}
@@ -342,7 +345,7 @@ build_network_inputs <- function(ego, de_df) {
 #'   and at least the column \code{avg_log2FC} (mean fold-change across member
 #'   genes), as returned by \code{\link{build_network_inputs}}. If it also has
 #'   \code{zscore}, \code{median_log2FC}, \code{n_up}, and \code{n_down}
-#'   columns, node direction is called from the z-score (see
+#'   columns, node direction is called from the direction score (see
 #'   \code{zscore_threshold}); otherwise from the sign of \code{avg_log2FC}.
 #' @param collection Named list of character vectors. Each element is a set of
 #'   gene symbols belonging to one GO term. Names must match
@@ -369,12 +372,13 @@ build_network_inputs <- function(ego, de_df) {
 #'   results are reproducible. It does not change the random state of your
 #'   session. \code{NULL} disables seeding. Default \code{1234}.
 #' @param outdir Character path to the output directory. If \code{NULL},
-#'   no files are written. The directory is created if it does not exist.
+#'   no files are written. The directory is created if it does not exist; a
+#'   trailing \code{/} is optional.
 #' @param file_stem Character string used as the filename prefix for all
 #'   exported files. If \code{NULL} or empty, \code{collection_name} is used.
 #'   Stored in the result as the default stem for \code{\link{plot_network}}.
 #' @param zscore_threshold Numeric. A node is called \code{"up"} when its
-#'   direction z-score is at least this value, \code{"down"} when it is at
+#'   direction score is at least this value, \code{"down"} when it is at
 #'   most minus this value, and \code{"mixed"} otherwise. Default \code{1}.
 #' @param theme_ancestor_min_share Numeric \code{(0, 1]}. Minimum share of a
 #'   cluster's terms an ancestor must cover to be used as a label. Default
@@ -408,7 +412,7 @@ build_network_inputs <- function(ego, de_df) {
 #'     \code{"down"}, or \code{"mixed"}), \code{avg_log2FC} (mean),
 #'     \code{median_log2FC}, \code{n_up}, \code{n_down}, \code{zscore},
 #'     \code{go_id}, and \code{leiden_resolution}. The direction columns are
-#'     \code{NA} when \code{results_set} has no z-score columns, and
+#'     \code{NA} when \code{results_set} has no direction-score columns, and
 #'     \code{go_id} is \code{NA} when it has no GO IDs.}
 #'   \item{cluster_stats}{Data frame with columns \code{cluster},
 #'     \code{avg_degree}, and \code{n_terms}.}
@@ -692,7 +696,7 @@ generate_overlap_network <- function(
 # overlap. `fill_by` chooses the node fill:
 #   "regulation": up / down / mixed colours; shape also shows direction.
 #   "cluster":    Leiden cluster (legend on the left); shape shows direction.
-#   "zscore":     continuous blue-white-red gradient of the direction z-score.
+#   "zscore":     continuous blue-white-red gradient of the direction score.
 .network_plot <- function(network, layout, reg_labels, title,
                           fill_by = c("regulation", "cluster", "zscore"),
                           cluster_palette = NULL) {
@@ -751,7 +755,7 @@ generate_overlap_network <- function(
         shape = 21, colour = "grey25", stroke = 0.4
       ) +
       ggplot2::scale_fill_gradient2(
-        name = paste0("Direction z-score\n(+ = ", reg_labels[1],
+        name = paste0("Direction score\n(+ = ", reg_labels[1],
                       ",\n- = ", reg_labels[2], ")"),
         low = "#278EEA", mid = "white", high = "#E67A6E", midpoint = 0,
         limits = c(-z_max, z_max),
@@ -801,7 +805,8 @@ generate_overlap_network <- function(
 #'   \code{"extracellular matrix organization"}). Hyphens are internally
 #'   replaced with underscores to match network node naming conventions.
 #' @param outdir Character path to the output directory. If non-\code{NULL},
-#'   a CSV file is written. The directory is created if it does not exist.
+#'   a CSV file is written. The directory is created if it does not exist; a
+#'   trailing \code{/} is optional.
 #' @param label Optional character label used in the output filename. If
 #'   \code{NULL}, defaults to \code{"cluster-<id>"}.
 #'
@@ -830,8 +835,7 @@ write_cluster_results <- function(net_result, go_term, outdir, label = NULL) {
 
   if (!is.null(outdir)) {
     if (is.null(label)) label <- paste0("cluster-", target_cluster[1])
-    if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
-    utils::write.csv(cluster_terms, paste0(outdir, "network-cluster-", label, ".csv"),
+    utils::write.csv(cluster_terms, paste0(.as_dir(outdir), "network-cluster-", label, ".csv"),
                      row.names = FALSE)
   }
 

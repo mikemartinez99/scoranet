@@ -48,9 +48,12 @@ partition: how well separated the clusters are (mean and range).}
 \item{Stability (ARI)}{Mean adjusted Rand index between every pair of
 seeds. Values near 1 mean the partition does not depend on the seed.}
 }
-A good resolution sits on a plateau where the cluster count is steady and
-stability is high. The resolution used for \code{net_result} is marked with
-a dashed line.
+A practical choice is a resolution on a plateau where the cluster count is
+steady and stability is high. The resolution used for \code{net_result} is
+marked with a dashed line. These metrics describe how robust the clustering
+is for this one graph; they do not show that the clusters are biologically
+distinct, because the graph itself depends on GO annotations, DEG cutoffs
+and \code{overlap_threshold}.
 }
 \seealso{
 \code{\link{run_network_diagnostics}}

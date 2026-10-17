@@ -26,8 +26,9 @@ the cluster legend on the left.}
 \item{\code{"regulation"}}{Nodes filled by direction: up, down, or
 mixed.}
 \item{\code{"zscore"}}{Nodes filled by a continuous blue-white-red
-gradient of the direction z-score. Needs z-scores in the network
-(see \code{\link{build_network_inputs}}).}
+gradient of the direction score (a descriptive score, not a
+statistical test). Needs direction scores in the network (see
+\code{\link{build_network_inputs}}).}
 \item{\code{"themes"}}{The Leiden plot annotated with cluster themes: a
 shaded hull around each cluster with a callout naming its theme, and a
 layout that keeps each cluster together (so node positions differ from
@@ -64,8 +65,8 @@ the network's \code{collection_name} plus the plot type, e.g.
 
 \item{outdir}{Character path to an output directory. If non-\code{NULL},
 each plot is saved as a PNG along with the CSV tables it shows (see
-Side effects). The directory is created if it does not exist. Default
-\code{NULL} (nothing is written).}
+Side effects). The directory is created if it does not exist; a trailing
+\code{/} is optional. Default \code{NULL} (nothing is written).}
 
 \item{file_stem}{Character filename prefix. Defaults to the
 \code{file_stem} stored in \code{net_result}.}
@@ -73,7 +74,7 @@ Side effects). The directory is created if it does not exist. Default
 \value{
 One \code{ggplot} object when one type is drawn, otherwise a named
 list of \code{ggplot} objects. \code{zscore} is skipped (with a message)
-when the network has no z-scores and other types are requested; asking
+when the network has no direction scores and other types are requested; asking
 for \code{zscore} alone is then an error.
 }
 \description{

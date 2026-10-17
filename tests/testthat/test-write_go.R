@@ -106,3 +106,17 @@ test_that("write_go errors when split results are written with split_direction =
     "split_direction = TRUE"
   )
 })
+
+test_that("write_go writes inside outSubDir without a trailing slash", {
+  outdir <- file.path(tempdir(), "test_go_noslash")
+  go_list <- list(ClusterA = data.frame(
+    Description = "immune response", GeneRatio = "5/100", p.adjust = 0.01,
+    geneID = "G1/G2/G3/G4/G5"
+  ))
+
+  write_go(go_list, outdir)
+
+  expect_true(file.exists(file.path(outdir, "ClusterA_GO_ORA_Results.csv")))
+  expect_false(file.exists(paste0(outdir, "ClusterA_GO_ORA_Results.csv")))
+  unlink(outdir, recursive = TRUE)
+})

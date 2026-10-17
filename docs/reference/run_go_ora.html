@@ -100,8 +100,11 @@ Default <code>"SYMBOL"</code>.</p></dd>
 
 
 <dt id="arg-qvaluecutoff">qvalueCutoff<a class="anchor" aria-label="anchor" href="#arg-qvaluecutoff"></a></dt>
-<dd><p>Numeric. q-value (BH-adjusted p-value) threshold for
-retaining enriched terms. Default <code>0.1</code>.</p></dd>
+<dd><p>Numeric. Threshold on the Storey q-value (the
+<code>qvalue</code> column, an estimate of the false discovery rate from the
+<span class="pkg">qvalue</span> method) for retaining enriched terms. This is separate from
+the Benjamini-Hochberg adjusted p-value in <code>p.adjust</code>, which
+<code>enrichGO</code> filters at 0.05. Default <code>0.1</code>.</p></dd>
 
 
 <dt id="arg-ont">ont<a class="anchor" aria-label="anchor" href="#arg-ont"></a></dt>
@@ -139,7 +142,9 @@ when <code>simplify = TRUE</code>. Default <code>0.7</code>.</p></dd>
 
 <dt id="arg-outputdir">outputDir<a class="anchor" aria-label="anchor" href="#arg-outputdir"></a></dt>
 <dd><p>Character path to the directory where the QC summary CSV
-is written. Created if it does not exist.</p></dd>
+is written, with or without a trailing <code>/</code>. Created if it does not
+exist. If <code>NULL</code> (default), no file is written; the QC summary is
+still printed and attached to the result as the <code>"qc"</code> attribute.</p></dd>
 
 
 <dt id="arg-outname">outname<a class="anchor" aria-label="anchor" href="#arg-outname"></a></dt>

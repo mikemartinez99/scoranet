@@ -134,15 +134,23 @@ line marks the resolution the network was built with.
 - **modularity is high** and roughly flat, and
 - **stability is close to 1** with a narrow band.
 
-A resolution inside such a plateau gives clusters that reflect real structure
-in the network rather than the particular seed or the exact resolution you
-chose. If the dashed line sits on a steep part of the cluster-count curve, small
-changes in resolution would change your clusters: move it onto a plateau.
+A resolution inside such a plateau gives clusters that do not depend on the
+particular seed or the exact resolution you chose. If the dashed line sits on a
+steep part of the cluster-count curve, small changes in resolution would change
+your clusters: move it onto a plateau.
+
+**What these metrics do not show.** Stability and modularity measure how
+robust the clustering is for this one graph. They do not show that the
+clusters are biologically real or distinct. The graph is built from GO
+annotation overlap among the selected DEGs, so it changes with the annotation
+version, the DEG cutoffs and `overlap_threshold`; a perfectly stable partition
+of it is still a partition of annotation overlap. Check the driver genes and
+the terms in each cluster before reading a cluster as one biological process.
 
 **Interpreting the panels together.**
 
 - **Rising cluster count, falling modularity.** Clusters are being split past
-  the network's natural structure. Go lower.
+  the graph's community structure. Go lower.
 - **Stability dips with a wide band.** At that resolution, different seeds give
   different clusters: the partition is ambiguous. Avoid those resolutions.
 - **Stability of 1 at the extremes is not meaningful on its own.** At very low
@@ -153,8 +161,8 @@ changes in resolution would change your clusters: move it onto a plateau.
 - **Modularity peak.** The resolution with the highest modularity is a
   reasonable default if there is no clear plateau.
 
-**Modularity values.** Above about 0.3 suggests meaningful community
-structure; GO overlap networks are often 0.5 to 0.8, because related terms form
+**Modularity values.** Above about 0.3 suggests clear community structure in
+the graph; GO overlap networks are often 0.5 to 0.8, because related terms form
 tight groups.
 
 **What to change.** `leiden_resolution` in `run_comparison_networks()`.
@@ -193,15 +201,15 @@ tight groups.
   actually changing.
 - **Large dots for one or two genes** mean the cluster exists because a few
   genes are annotated to many terms. The cluster may represent one gene's
-  annotation breadth rather than a coordinated program. Treat it with care.
+  annotation breadth rather than a shared set of genes. Treat it with care.
 - **Many medium dots** mean the cluster is supported by a broad set of genes
-  shared across its terms: a more convincing module.
+  shared across its terms: the module does not rest on one or two genes.
 - **Mixed colours within a cluster** mean its genes move in both directions.
   This matches a grey (mixed) node colour in the network plot and is common for
-  regulatory programs.
+  broad regulatory terms.
 - **The same gene driving several clusters** (it appears in more than one
-  column) links those modules. They may be one program that Leiden split; try a
-  lower resolution.
+  column) links those modules. They may be one group of annotations that Leiden
+  split; try a lower resolution.
 - **Watch for housekeeping families.** Ribosomal (Rpl/Rps), mitochondrial (mt-),
   and histone genes can dominate clusters through sheer annotation volume, and
   can reflect technical differences between samples.
@@ -226,14 +234,14 @@ without rebuilding the network and keeps the layout.
 |---|---|---|
 | `regulation` | Direction: red = up in numerator, blue = up in denominator, grey = mixed | See which regions of the network are up or down |
 | `leiden` | Leiden cluster (legend on the left) | See the modules; match them to the driver-gene plot and wordclouds |
-| `zscore` | Continuous direction z-score, blue to white to red | See *how strongly* each term leans one way |
+| `zscore` | Continuous direction score, blue to white to red | See *how strongly* each term leans one way |
 | `themes` | Leiden cluster, with a labelled hull around each cluster | Name the modules (labels set by `label_by`) |
 
 In `regulation`, `leiden` and `themes`, node shape also shows direction (circle = up,
 square = down, diamond = mixed). In all of them, edge width shows Jaccard overlap
 and node size shows the number of DE genes in the term.
 
-**The direction z-score.** For each term,
+**The direction score.** For each term (column `zscore`),
 `z = (n_up - n_down) / sqrt(n_up + n_down)`, using the term's DE genes. It
 combines *how consistently* the genes move with *how many* genes support it:
 
@@ -244,9 +252,14 @@ combines *how consistently* the genes move with *how many* genes support it:
 Terms are called up or down when |z| is at least `zscore_threshold` (default 1)
 and mixed otherwise. Raise it (for example to 2) for stricter direction calls.
 
+The score has the form of a z-score but is descriptive, not a statistical test:
+a term's genes are correlated and were selected as DEGs, so it has no
+calibrated null distribution. Use it to rank and colour terms, not to assign
+p-values.
+
 The output tables also keep the **mean** and **median** log2 fold change for
 each term. The mean can be pulled in the opposite direction by one gene with an
-extreme fold change; the median and z-score are more robust.
+extreme fold change; the median and the direction score are more robust.
 
 **With `split_direction = TRUE`** every term in the `_up` network is up and every
 term in the `_down` network is down, so the `regulation` and `zscore` plots are a

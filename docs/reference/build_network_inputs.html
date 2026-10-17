@@ -102,10 +102,13 @@ negative fold change.</p></dd>
 <code>ID</code> column).</p></dd>
 
 <dt>zscore</dt>
-<dd><p>Direction z-score,
+<dd><p>Direction score,
 \((n_{up} - n_{down}) / \sqrt{n_{up} + n_{down}}\), as used by
 GOplot. Large positive values mean the term's genes are
-consistently up; values near 0 mean mixed.</p></dd>
+consistently up; values near 0 mean mixed. It has the form of a
+z-score but is descriptive: the genes are correlated and were
+selected as DEGs, so it has no calibrated null distribution and
+should not be converted to a p-value.</p></dd>
 
 
 </dl><p>All values are 0 for a term with no DE genes.</p></dd>

@@ -149,3 +149,19 @@ test_that("plot_driver_genes explains an outdated network result", {
   old_result <- list(go_term_df = data.frame(go_term = "a", cluster = 1))
   expect_error(plot_driver_genes(old_result), "older version")
 })
+
+test_that("run_network_diagnostics saves figures inside outdir without a trailing slash", {
+  inp <- mock_diag_inputs()
+  outdir <- file.path(tempdir(), "test_diag_noslash")
+  nets <- mock_diag_networks(inp, paste0(outdir, "/nets/"))
+  diag_dir <- file.path(outdir, "diagnostics")
+
+  suppressMessages(run_network_diagnostics(
+    nets, inp$de, inp$go, outdir = diag_dir,
+    resolutions = c(0.5, 1), n_seeds = 2, thresholds = c(0.1, 0.3)
+  ))
+
+  expect_true(file.exists(file.path(diag_dir, "comparison-overview.png")))
+  expect_false(file.exists(paste0(diag_dir, "comparison-overview.png")))
+  unlink(outdir, recursive = TRUE)
+})

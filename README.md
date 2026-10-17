@@ -14,31 +14,23 @@
 
 ---
 
-![scoranet example outputs: direction z-score network, cluster-theme network, Leiden resolution sweep, and driver genes](man/figures/overview.png)
+![scoranet example outputs: direction score network, cluster-theme network, Leiden resolution sweep, and driver genes](man/figures/overview.png)
 
 ## Installation
-Install the Bioconductor dependencies first if needed
+
+Install the latest version from Github via `devtools`
 
 ```r
-if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
-
-BiocManager::install(c("clusterProfiler", "GO.db", "AnnotationDbi", "org.Mm.eg.db"))
-```
-
-Then install the latest version from Github
-
-```r
-install.packages("devtools") # if not already installed
-
+install.packages("devtools")
 library(devtools)
+
 devtools::install_github("mikemartinez99/scoranet")
 
 library(scoranet)
 ```
 
 ## Overview
-Single-cell experiments often produce hundreds of differentially expressed genes per cell type, and gene ontology (GO) over-representation analysis on those genes can return dozens of overlapping, redundant terms. **scoranet** (Single-Cell Over-Representation Analysis NETworks) turns that list into a map of biological programs to help make sense of your results!
+Single-cell experiments often produce hundreds of differentially expressed genes per cell type, and gene ontology (GO) over-representation analysis on those genes can return dozens of overlapping, redundant terms. **scoranet** (Single-Cell Over-Representation Analysis NETworks) turns that list into a map of biological programs to help make sense of your results. Outputs are fully editable `ggplot2` objects.
 
 > [!IMPORTANT]
 > **scoranet is compatible with Seurat v4 and v5!**
@@ -76,9 +68,9 @@ For a guide to reading the diagnostic figures, see [DIAGNOSTICS.md](DIAGNOSTICS.
 *October 17th, 2026: "The network update"*<br>
   - **run_cluster_de** returns DEGs and all tested genes per cluster, with explicit Seurat **FindMarkers** pre-filters and Seurat 5 support<br>
   - **run_go_ora** supports tested-gene universes, up/down split analysis, and optional term simplification<br>
-  - **run_comparison_networks** builds seeded Leiden networks (modularity objective) with z-score direction calls<br>
+  - **run_comparison_networks** builds seeded Leiden networks (modularity objective) with direction-score calls<br>
   - Networks follow a **build, diagnose, then plot** workflow: **generate_overlap_network** builds and clusters, **recluster_network** re-runs Leiden at a new resolution without rebuilding, and **plot_network** draws figures on demand<br>
-  - Added **ggraph** network plots via **plot_network**: direction (`regulation`), Leiden clusters, z-score, and **cluster themes** named by the GO hierarchy; each saved PNG comes with its CSV tables<br>
+  - Added **ggraph** network plots via **plot_network**: direction (`regulation`), Leiden clusters, direction score, and **cluster themes** named by the GO hierarchy; each saved PNG comes with its CSV tables<br>
   - Added **network_tables** to get the summary, cluster stats, membership and themes tables in R<br>
   - Added **diagnostics**: Leiden resolution sweep, overlap threshold, driver genes, and comparison overview<br>
   - Added **write_de** and **write_go** (replacing write_de_results)<br>

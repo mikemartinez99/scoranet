@@ -55,7 +55,9 @@ table(ifnb$seurat_annotations, ifnb$stim)[c("CD14 Mono", "CD4 Naive T", "B"), ]
 ```
 
 We compare stimulated (`STIM`) against control (`CTRL`) cells in three cell
-types. All output files go to a temporary folder.
+types. All output files go to a temporary folder. Every function that writes
+files takes a directory path with or without a trailing `/`, and creates the
+directory if it does not exist.
 
 
 ``` r
@@ -87,7 +89,7 @@ de_results <- run_cluster_de(
 #> * Up in CTRL: 374
 #> 
 #> i Running DE for "CD4 Naive T" (STIM vs CTRL)
-#> v Running DE for "CD4 Naive T" (STIM vs CTRL) [871ms]
+#> v Running DE for "CD4 Naive T" (STIM vs CTRL) [870ms]
 #> 
 #> * Tested genes: 526
 #> * DEGs: 202
@@ -95,7 +97,7 @@ de_results <- run_cluster_de(
 #> * Up in CTRL: 42
 #> 
 #> i Running DE for "B" (STIM vs CTRL)
-#> v Running DE for "B" (STIM vs CTRL) [634ms]
+#> v Running DE for "B" (STIM vs CTRL) [624ms]
 #> 
 #> * Tested genes: 812
 #> * DEGs: 263
@@ -154,7 +156,7 @@ are DEGs.
 
 
 ``` r
-write_de(de_results, outSubDir = paste0(out_dir, "/DE/"))
+write_de(de_results, outSubDir = file.path(out_dir, "DE"))
 list.files(file.path(out_dir, "DE"))
 #> [1] "B_DE_Results.csv"             "B_tested_genes.csv"          
 #> [3] "CD14_Mono_DE_Results.csv"     "CD14_Mono_tested_genes.csv"  
@@ -175,7 +177,7 @@ go_results <- run_go_ora(
   org_db              = org.Hs.eg.db,
   use_tested_universe = TRUE,
   ont                 = "BP",
-  outputDir           = paste0(out_dir, "/ORA/")
+  outputDir           = file.path(out_dir, "ORA")
 )
 #> 
 #> 
@@ -228,12 +230,14 @@ knitr::kable(
 
 The top terms are antiviral and cytokine responses.
 
-A QC summary of how many gene sets were tested and retained is written for
-each run:
+A QC summary of how many gene sets were tested and retained is attached to the
+result as its `"qc"` attribute, and saved as `GO_ORA_QC_summary.csv` when
+`outputDir` is given. `outputDir` is optional: leave it as `NULL` to keep
+everything in R.
 
 
 ``` r
-knitr::kable(read.csv(file.path(out_dir, "ORA", "GO_ORA_QC_summary.csv"), row.names = 1))
+knitr::kable(attr(go_results, "qc"), row.names = FALSE)
 ```
 
 
@@ -255,7 +259,7 @@ universe being appropriately conservative, not a lack of signal.
 
 
 ``` r
-write_go(go_results, outSubDir = paste0(out_dir, "/ORA/"))
+write_go(go_results, outSubDir = file.path(out_dir, "ORA"))
 list.files(file.path(out_dir, "ORA"))
 #> [1] "B_GO_ORA_Results.csv"           "CD14_Mono_GO_ORA_Results.csv"  
 #> [3] "CD4_Naive_T_GO_ORA_Results.csv" "GO_ORA_QC_summary.csv"
@@ -273,7 +277,7 @@ net_default <- run_comparison_networks(
   go_list     = go_results,
   de_list     = de_results,
   comp_label  = "STIM_vs_CTRL",
-  base_outdir = paste0(out_dir, "/default/")
+  base_outdir = file.path(out_dir, "default")
 )
 
 dx_default <- run_network_diagnostics(net_default, de_results, go_results)
@@ -310,7 +314,7 @@ net_results <- run_comparison_networks(
   go_list           = go_results,
   de_list           = de_results,
   comp_label        = "STIM_vs_CTRL",
-  base_outdir       = paste0(out_dir, "/"),
+  base_outdir       = out_dir,
   overlap_threshold = 0.2,
   leiden_resolution = 1,
   theme_min_terms   = 2
@@ -552,7 +556,7 @@ each cluster:
 ``` r
 write_cluster_wordclouds_patchwork(
   net_list   = net_results["CD14 Mono"],
-  outputDir  = paste0(out_dir, "/"),
+  outputDir  = out_dir,
   comparison = "STIM_vs_CTRL"
 )
 ```
@@ -614,14 +618,14 @@ go_split <- run_go_ora(
   org_db              = org.Hs.eg.db,
   use_tested_universe = TRUE,
   split_direction     = TRUE,
-  outputDir           = paste0(out_dir, "/ORA_split/")
+  outputDir           = file.path(out_dir, "ORA_split")
 )
 
 net_split <- run_comparison_networks(
   go_list           = go_split,
   de_list           = de_results,
   comp_label        = "STIM_vs_CTRL_split",
-  base_outdir       = paste0(out_dir, "/"),
+  base_outdir       = out_dir,
   overlap_threshold = 0.2,
   split_direction   = TRUE
 )
@@ -806,8 +810,9 @@ $|$`avg_log2FC`$| >$ `logfc_thresh` (0.5).
 
 The background is every gene tested in the cell type when
 `use_tested_universe = TRUE`. Only GO terms with 5 to 300 annotated
-background genes are tested. `GO_ORA_QC_summary.csv` lists, for each cell
-type, how many GO terms were `tested`, how many were `retained` as
+background genes are tested. `GO_ORA_QC_summary.csv` (written when
+`run_go_ora()` is given an `outputDir`, and always available in R as
+`attr(go_results, "qc")`) lists, for each cell type, how many GO terms were `tested`, how many were `retained` as
 significant, and the proportion (`prop`); with `simplify = TRUE` it adds
 `after_simplify`, the count left after redundant terms are merged.
 

@@ -138,3 +138,23 @@ test_that("run_comparison_networks errors on old-format de_list", {
 
   unlink(outdir, recursive = TRUE)
 })
+
+test_that("run_comparison_networks and word clouds write inside base_outdir without a trailing slash", {
+  outdir <- file.path(tempdir(), "test_net_noslash")
+  go_list <- list(`Fib A/1` = mock_go_table(paste0("Up", 1:10), "comb"))
+
+  res <- run_quiet(go_list, mock_net_de(), comp_label = "A_vs_B", base_outdir = outdir)
+  netdir <- file.path(outdir, "A_vs_B", "networks")
+  expect_true(file.exists(file.path(netdir, "Fib_A_1-cluster-membership.csv")))
+  expect_true(file.exists(file.path(netdir, "Fib_A_1-regulation.png")))
+  expect_false(dir.exists(paste0(outdir, "A_vs_B")))
+
+  grDevices::pdf(NULL)
+  on.exit(grDevices::dev.off(), add = TRUE)
+  suppressMessages(suppressWarnings(
+    write_cluster_wordclouds_patchwork(res, outputDir = outdir, comparison = "A_vs_B", min_terms = 1)
+  ))
+  expect_true(file.exists(file.path(netdir, "Fib_A_1_all_clusters_wordclouds.png")))
+
+  unlink(outdir, recursive = TRUE)
+})

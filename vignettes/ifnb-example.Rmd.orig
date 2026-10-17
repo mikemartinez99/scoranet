@@ -59,7 +59,9 @@ table(ifnb$seurat_annotations, ifnb$stim)[c("CD14 Mono", "CD4 Naive T", "B"), ]
 ```
 
 We compare stimulated (`STIM`) against control (`CTRL`) cells in three cell
-types. All output files go to a temporary folder.
+types. All output files go to a temporary folder. Every function that writes
+files takes a directory path with or without a trailing `/`, and creates the
+directory if it does not exist.
 
 ```{r paths}
 cell_types <- c("CD14 Mono", "CD4 Naive T", "B")
@@ -83,7 +85,9 @@ de_results <- run_cluster_de(
 ```
 
 Each cell type returns two tables: `degs` (genes passing the adjusted p-value
-and fold-change cutoffs) and `tested` (every gene `FindMarkers` tested).
+and fold-change cutoffs) and `tested` (every gene `FindMarkers` tested). Note:
+the `tested` genes are pre-filtered by `Seurat::min.percent` and `Seurat::logfc.threshold`
+which are tuneable parameters in the `run_cluster_de` function. See `?run_cluster_de` for more information.
 
 ```{r de-tables}
 names(de_results[["CD14 Mono"]])
@@ -109,7 +113,7 @@ are DEGs.
 `write_de()` saves both tables per cell type:
 
 ```{r de-write, message = FALSE}
-write_de(de_results, outSubDir = paste0(out_dir, "/DE/"))
+write_de(de_results, outSubDir = file.path(out_dir, "DE"))
 list.files(file.path(out_dir, "DE"))
 ```
 
@@ -126,7 +130,7 @@ go_results <- run_go_ora(
   org_db              = org.Hs.eg.db,
   use_tested_universe = TRUE,
   ont                 = "BP",
-  outputDir           = paste0(out_dir, "/ORA/")
+  outputDir           = file.path(out_dir, "ORA")
 )
 ```
 
@@ -142,11 +146,13 @@ knitr::kable(
 
 The top terms are antiviral and cytokine responses.
 
-A QC summary of how many gene sets were tested and retained is written for
-each run:
+A QC summary of how many gene sets were tested and retained is attached to the
+result as its `"qc"` attribute, and saved as `GO_ORA_QC_summary.csv` when
+`outputDir` is given. `outputDir` is optional: leave it as `NULL` to keep
+everything in R.
 
 ```{r ora-qc}
-knitr::kable(read.csv(file.path(out_dir, "ORA", "GO_ORA_QC_summary.csv"), row.names = 1))
+knitr::kable(attr(go_results, "qc"), row.names = FALSE)
 ```
 
 CD14 monocytes have the most DEGs but the fewest enriched terms. With the
@@ -157,7 +163,7 @@ universe being appropriately conservative, not a lack of signal.
 `write_go()` saves the results, adding numeric gene-ratio columns:
 
 ```{r ora-write, message = FALSE}
-write_go(go_results, outSubDir = paste0(out_dir, "/ORA/"))
+write_go(go_results, outSubDir = file.path(out_dir, "ORA"))
 list.files(file.path(out_dir, "ORA"))
 ```
 
@@ -172,7 +178,7 @@ net_default <- run_comparison_networks(
   go_list     = go_results,
   de_list     = de_results,
   comp_label  = "STIM_vs_CTRL",
-  base_outdir = paste0(out_dir, "/default/")
+  base_outdir = file.path(out_dir, "default")
 )
 
 dx_default <- run_network_diagnostics(net_default, de_results, go_results)
@@ -202,7 +208,7 @@ net_results <- run_comparison_networks(
   go_list           = go_results,
   de_list           = de_results,
   comp_label        = "STIM_vs_CTRL",
-  base_outdir       = paste0(out_dir, "/"),
+  base_outdir       = out_dir,
   overlap_threshold = 0.2,
   leiden_resolution = 1,
   theme_min_terms   = 2
@@ -219,12 +225,18 @@ dx <- run_network_diagnostics(net_results, de_results, go_results)
 dx$networks[["CD14 Mono"]]$leiden_sweep
 ```
 
-A good resolution sits on a plateau where the cluster count is steady,
-modularity is high, and stability (agreement between random seeds, measured as
-the adjusted Rand index) is close to 1. Section 7 defines each metric.
-Here the default resolution of 1 sits at the modularity peak with perfect
-stability, so we keep it. Modularity is modest because nearly every term in
-this network is part of one connected interferon response.
+A practical choice is a resolution on a plateau where the cluster count is
+steady, modularity is high, and stability (agreement between random seeds,
+measured as the adjusted Rand index) is close to 1. Section 7 defines each
+metric. Here the default resolution of 1 sits at the modularity peak with
+perfect stability, so we keep it. Modularity is modest because most terms in
+this network share interferon-stimulated genes.
+
+These metrics describe the clustering of this one graph: a stable, modular
+partition means Leiden splits the graph the same way every time, not that each
+cluster is a distinct biological process. The graph itself depends on the GO
+annotations, the DEG cutoffs and `overlap_threshold`, so judge clusters by
+their genes (Section 5) as well.
 
 If the sweep pointed to a different resolution, `recluster_network()` would
 re-run Leiden on the existing network without rebuilding it, keeping the node
@@ -256,8 +268,8 @@ red: stimulation switches on the antiviral program.
 plot_network(net, "regulation")
 ```
 
-The `zscore` plot shows how strongly each term leans one way, on a continuous
-scale. The darkest red terms are the core defence and innate immune terms of
+The `zscore` plot shows the direction score (Section 7): how strongly each
+term's DE genes lean one way, on a continuous scale. The darkest red terms are the core defence and innate immune terms of
 the interferon response. The four blue terms, up in `CTRL`, form the two small
 clusters (translation and the broad proliferation terms); one pale term in the
 immune cluster is mixed, with about as many genes going up as down.
@@ -276,14 +288,13 @@ plot_network(net, "leiden")
 
 The `themes` plot outlines each Leiden cluster and labels it with the GO terms
 its members fall under in the GO hierarchy, with how many of the cluster's
-terms they cover. The two large clusters separate the direct antiviral
-response (viral process, response to type I interferon) from the broader
-innate immune response. Of the two small clusters, translation is clearly down
+terms they cover. Clusters are groups of GO terms that share annotated DE
+genes, so a label describes what those genes are annotated to; it is a starting
+point for interpretation, not evidence on its own that the process changed.
+Here the two large clusters separate terms about the antiviral response (viral
+process, response to type I interferon) from broader innate immune terms. Of the two small clusters, translation is clearly down
 in `STIM`. The other holds two broad "regulation of cell population
-proliferation" terms; it leans only weakly down and is built from cytokine,
-chemokine and matrix genes that carry proliferation annotations (see the driver
-genes below), so it is better read as an annotation catch-all than as a change
-in proliferation.
+proliferation" terms.
 
 ```{r plot-themes, fig.width = 11, fig.height = 8}
 plot_network(net, "themes", min_terms = 2)
@@ -328,9 +339,10 @@ dx$networks[["CD14 Mono"]]$driver_genes
 The antiviral cluster is built on the *OAS* and *IFITM* families. The innate
 immune cluster shares *OAS1* and *OAS3* and adds *GBP5* and *CASP1*, all up in
 `STIM`. *IL1B* also runs through most of its terms but goes **down** (log2FC
-about -2.7): type I interferon is known to suppress IL-1β production
-(Guarda et al. 2011, *Immunity*), so this module is an interferon-driven
-innate response, not an IL-1β-driven one. The translation cluster is built on
+about -2.7). This is consistent with the reported suppression of IL-1β by type
+I interferon (Guarda et al. 2011, *Immunity*), although this experiment does
+not test that mechanism in these cells. Either way, the module's up-regulated
+genes are interferon-stimulated genes, not *IL1B*. The translation cluster is built on
 ribosomal protein genes that go down after stimulation, and the small
 "proliferation" cluster on *CXCL10*, *TNFSF13B* and *CD38* (up) with *IL1B* and
 *VCAN* (down).
@@ -352,7 +364,7 @@ each cluster:
 ```{r wordclouds, message = FALSE, warning = FALSE}
 write_cluster_wordclouds_patchwork(
   net_list   = net_results["CD14 Mono"],
-  outputDir  = paste0(out_dir, "/"),
+  outputDir  = out_dir,
   comparison = "STIM_vs_CTRL"
 )
 ```
@@ -400,14 +412,14 @@ go_split <- run_go_ora(
   org_db              = org.Hs.eg.db,
   use_tested_universe = TRUE,
   split_direction     = TRUE,
-  outputDir           = paste0(out_dir, "/ORA_split/")
+  outputDir           = file.path(out_dir, "ORA_split")
 )
 
 net_split <- run_comparison_networks(
   go_list           = go_split,
   de_list           = de_results,
   comp_label        = "STIM_vs_CTRL_split",
-  base_outdir       = paste0(out_dir, "/"),
+  base_outdir       = out_dir,
   overlap_threshold = 0.2,
   split_direction   = TRUE
 )
@@ -418,14 +430,22 @@ names(net_split)
 plot_network(net_split[["CD14 Mono_up"]], "themes")
 ```
 
-Built from the up-regulated genes alone, the CD14 monocyte response resolves
-into many distinct modules: type I interferon production, interleukin-1
-production, chemokine response and leukocyte chemotaxis, adaptive immune
-activation, and more. Most of these terms were not enriched in the combined
-analysis at all: it found `r nrow(as.data.frame(go_results[["CD14 Mono"]]))`
-enriched terms, while the up-regulated genes alone give
-`r nrow(as.data.frame(go_split[["CD14 Mono"]]$up))`. The interleukin-1 production module reflects regulators of IL-1 that go
-up (such as *GBP5* and *CASP1*), not *IL1B* itself, which goes down.
+Built from the up-regulated genes alone, the network splits into more
+clusters, labelled by annotations such as type I interferon production,
+interleukin-1 production, chemokine response and leukocyte chemotaxis, and
+adaptive immune activation. The combined analysis found
+`r nrow(as.data.frame(go_results[["CD14 Mono"]]))` enriched terms; the
+up-regulated genes alone give
+`r nrow(as.data.frame(go_split[["CD14 Mono"]]$up))`. More terms are expected
+here, because the test uses a different gene list (and so a different set of
+hypotheses). The split networks act as a more direction-specific view of the
+same annotations, not as evidence of more distinct biological programs.
+
+The labels describe the annotations of the up-regulated genes, not measured
+processes. The "interleukin-1 production" cluster, for example, contains
+up-regulated genes annotated to the regulation of IL-1 production (such as
+*GBP5* and *CASP1*); it does not show that more IL-1 is produced, and *IL1B*
+itself goes down.
 
 The down-regulated genes give a much smaller network of
 `r nrow(net_split[["CD14 Mono_down"]]$go_term_df)` terms (translation and
@@ -468,7 +488,7 @@ For each term, using only its DE genes:
   log2 fold change (up in `STIM` and up in `CTRL` here).
 - `avg_log2FC` and `median_log2FC` are the mean and median log2 fold change.
   The median is less affected by one gene with an extreme fold change.
-- The **direction z-score** is
+- The **direction score** (column `zscore`) is
   $$z = \frac{n_{up} - n_{down}}{\sqrt{n_{up} + n_{down}}}.$$
   It combines how consistently the genes move with how many genes support it:
   9 up and 1 down gives $z = 2.5$; 3 up and 2 down gives $z = 0.45$; a single
@@ -476,14 +496,19 @@ For each term, using only its DE genes:
 - `regulation` calls a term `up` when $z \ge$ `zscore_threshold` (default 1),
   `down` when $z \le -$`zscore_threshold`, and `mixed` otherwise.
 
-This direction z-score is not the same as the `zScore` column that
+The direction score has the form of a z-score but is **descriptive, not a
+test**: it has no calibrated null distribution, because a term's genes are
+correlated and were all selected as DEGs. Use it to rank and colour terms, not
+to assign p-values. It is also not the same as the `zScore` column that
 `clusterProfiler` adds to the ORA results, which measures enrichment, not
 direction (see below).
 
 ## Clustering
 
 **Leiden clustering** groups terms that are more densely connected to each
-other than to the rest of the network. Edge weights ($J$) are used, so
+other than to the rest of the network. The resulting clusters are
+annotation-overlap modules: sets of GO terms that share annotated DE genes.
+They are not pathways discovered independently of GO. Edge weights ($J$) are used, so
 strongly overlapping terms pull harder.
 
 **Resolution** sets how finely the network is split: higher values give more,
@@ -493,7 +518,7 @@ smaller clusters.
 share of edge weight that falls within clusters, minus the share expected if
 edges were placed at random while keeping each term's total edge weight. Values
 near 0 mean no better than random; values above about 0.3 indicate clear
-structure. The sweep always reports standard modularity (resolution 1), so it
+community structure in the graph. The sweep always reports standard modularity (resolution 1), so it
 can be compared across resolutions.
 
 **Adjusted Rand index (ARI)** measures how well two partitions of the same
@@ -503,6 +528,11 @@ when the partitions are identical and about 0 when they agree no more than
 random partitions would. **Stability** in the sweep is the mean ARI over every
 pair of random seeds at a resolution. A value of 1 means the clustering does
 not depend on the seed.
+
+Modularity and stability measure how robust the clustering algorithm is on
+this one graph. They do not show that the clusters are biologically distinct:
+a different `overlap_threshold`, DEG cutoff or annotation version gives a
+different graph.
 
 ## Cluster themes and the ratios on the network
 
@@ -575,7 +605,7 @@ $|$`avg_log2FC`$| >$ `logfc_thresh` (0.5).
 | `BgRatio` | $M/N$: background genes in the term / background genes annotated to any tested GO term |
 | `RichFactor` | $k/M$: the fraction of the term's background genes that are DEGs |
 | `FoldEnrichment` | $(k/n) / (M/N)$: how many times more often the term appears among DEGs than in the background |
-| `zScore` | Enrichment z-score from `clusterProfiler`: how far $k$ is above the count expected by chance, in standard deviations. Not the direction z-score |
+| `zScore` | Enrichment z-score from `clusterProfiler`: how far $k$ is above the count expected by chance, in standard deviations. Not the direction score |
 | `pvalue` | One-sided hypergeometric test p-value |
 | `p.adjust` | Benjamini-Hochberg adjusted p-value; terms with `p.adjust` < 0.05 enter the network |
 | `qvalue` | Storey q-value |
@@ -585,8 +615,9 @@ $|$`avg_log2FC`$| >$ `logfc_thresh` (0.5).
 
 The background is every gene tested in the cell type when
 `use_tested_universe = TRUE`. Only GO terms with 5 to 300 annotated
-background genes are tested. `GO_ORA_QC_summary.csv` lists, for each cell
-type, how many GO terms were `tested`, how many were `retained` as
+background genes are tested. `GO_ORA_QC_summary.csv` (written when
+`run_go_ora()` is given an `outputDir`, and always available in R as
+`attr(go_results, "qc")`) lists, for each cell type, how many GO terms were `tested`, how many were `retained` as
 significant, and the proportion (`prop`); with `simplify = TRUE` it adds
 `after_simplify`, the count left after redundant terms are merged.
 
@@ -596,7 +627,7 @@ significant, and the proportion (`prop`); with `simplify = TRUE` it adds
 |---|---|---|
 | `<cell type>_network_summary.csv` | metric | `nodes`, `edges` and `clusters` counts |
 | `<cell type>-cluster-stats.csv` | cluster | `cluster`; `avg_degree`, the mean degree of its terms (how densely connected it is); `n_terms` |
-| `<cell type>-cluster-membership.csv` | GO term | `go_term`, `cluster`, `degree`, `regulation`, `avg_log2FC`, `median_log2FC`, `n_up`, `n_down`, `zscore` (direction), `go_id`, `leiden_resolution`, and `genes` (the term's DE genes, separated by `/`). Sorted by cluster, then degree |
+| `<cell type>-cluster-membership.csv` | GO term | `go_term`, `cluster`, `degree`, `regulation`, `avg_log2FC`, `median_log2FC`, `n_up`, `n_down`, `zscore` (direction score), `go_id`, `leiden_resolution`, and `genes` (the term's DE genes, separated by `/`). Sorted by cluster, then degree |
 | `<cell type>-cluster-themes.csv` | cluster | `cluster`, `n_terms`, `ancestor` (names joined by ` / `), `ancestor_id`, `ancestor_n_covered` (the numerator in the plot labels), `keywords`, `phrase`, `hub` |
 
 `network_tables(net)` returns the same four tables in R. The PNG files are the

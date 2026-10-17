@@ -29,7 +29,7 @@ generate_overlap_network(
 and at least the column \code{avg_log2FC} (mean fold-change across member
 genes), as returned by \code{\link{build_network_inputs}}. If it also has
 \code{zscore}, \code{median_log2FC}, \code{n_up}, and \code{n_down}
-columns, node direction is called from the z-score (see
+columns, node direction is called from the direction score (see
 \code{zscore_threshold}); otherwise from the sign of \code{avg_log2FC}.}
 
 \item{collection}{Named list of character vectors. Each element is a set of
@@ -64,7 +64,8 @@ results are reproducible. It does not change the random state of your
 session. \code{NULL} disables seeding. Default \code{1234}.}
 
 \item{outdir}{Character path to the output directory. If \code{NULL},
-no files are written. The directory is created if it does not exist.}
+no files are written. The directory is created if it does not exist; a
+trailing \code{/} is optional.}
 
 \item{file_stem}{Character string used as the filename prefix for all
 exported files. If \code{NULL} or empty, \code{collection_name} is used.
@@ -76,7 +77,7 @@ and \code{"Upregulated in <ident2>"}. If \code{NULL} (default), they are
 parsed from \code{collection_name} around \code{"_vs_"}.}
 
 \item{zscore_threshold}{Numeric. A node is called \code{"up"} when its
-direction z-score is at least this value, \code{"down"} when it is at
+direction score is at least this value, \code{"down"} when it is at
 most minus this value, and \code{"mixed"} otherwise. Default \code{1}.}
 
 \item{theme_n_words}{Integer. Number of keywords per cluster in the
@@ -111,7 +112,7 @@ coefficients (before thresholding).}
 \code{"down"}, or \code{"mixed"}), \code{avg_log2FC} (mean),
 \code{median_log2FC}, \code{n_up}, \code{n_down}, \code{zscore},
 \code{go_id}, and \code{leiden_resolution}. The direction columns are
-\code{NA} when \code{results_set} has no z-score columns, and
+\code{NA} when \code{results_set} has no direction-score columns, and
 \code{go_id} is \code{NA} when it has no GO IDs.}
 \item{cluster_stats}{Data frame with columns \code{cluster},
 \code{avg_degree}, and \code{n_terms}.}

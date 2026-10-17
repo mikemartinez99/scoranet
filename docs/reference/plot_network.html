@@ -82,8 +82,9 @@ mixed.</p></dd>
 
 <dt><code>"zscore"</code></dt>
 <dd><p>Nodes filled by a continuous blue-white-red
-gradient of the direction z-score. Needs z-scores in the network
-(see <code><a href="build_network_inputs.html">build_network_inputs</a></code>).</p></dd>
+gradient of the direction score (a descriptive score, not a
+statistical test). Needs direction scores in the network (see
+<code><a href="build_network_inputs.html">build_network_inputs</a></code>).</p></dd>
 
 <dt><code>"themes"</code></dt>
 <dd><p>The Leiden plot annotated with cluster themes: a
@@ -140,8 +141,8 @@ the network's <code>collection_name</code> plus the plot type, e.g.
 <dt id="arg-outdir">outdir<a class="anchor" aria-label="anchor" href="#arg-outdir"></a></dt>
 <dd><p>Character path to an output directory. If non-<code>NULL</code>,
 each plot is saved as a PNG along with the CSV tables it shows (see
-Side effects). The directory is created if it does not exist. Default
-<code>NULL</code> (nothing is written).</p></dd>
+Side effects). The directory is created if it does not exist; a trailing
+<code>/</code> is optional. Default <code>NULL</code> (nothing is written).</p></dd>
 
 
 <dt id="arg-file-stem">file_stem<a class="anchor" aria-label="anchor" href="#arg-file-stem"></a></dt>
@@ -153,7 +154,7 @@ Side effects). The directory is created if it does not exist. Default
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>One <code>ggplot</code> object when one type is drawn, otherwise a named
 list of <code>ggplot</code> objects. <code>zscore</code> is skipped (with a message)
-when the network has no z-scores and other types are requested; asking
+when the network has no direction scores and other types are requested; asking
 for <code>zscore</code> alone is then an error.</p>
     </div>
     <div class="section level2">

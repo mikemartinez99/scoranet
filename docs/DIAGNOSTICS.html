@@ -134,17 +134,18 @@
 <strong>modularity is high</strong> and roughly flat, and</li>
 <li>
 <strong>stability is close to 1</strong> with a narrow band.</li>
-</ul><p>A resolution inside such a plateau gives clusters that reflect real structure in the network rather than the particular seed or the exact resolution you chose. If the dashed line sits on a steep part of the cluster-count curve, small changes in resolution would change your clusters: move it onto a plateau.</p>
+</ul><p>A resolution inside such a plateau gives clusters that do not depend on the particular seed or the exact resolution you chose. If the dashed line sits on a steep part of the cluster-count curve, small changes in resolution would change your clusters: move it onto a plateau.</p>
+<p><strong>What these metrics do not show.</strong> Stability and modularity measure how robust the clustering is for this one graph. They do not show that the clusters are biologically real or distinct. The graph is built from GO annotation overlap among the selected DEGs, so it changes with the annotation version, the DEG cutoffs and <code>overlap_threshold</code>; a perfectly stable partition of it is still a partition of annotation overlap. Check the driver genes and the terms in each cluster before reading a cluster as one biological process.</p>
 <p><strong>Interpreting the panels together.</strong></p>
 <ul><li>
-<strong>Rising cluster count, falling modularity.</strong> Clusters are being split past the network’s natural structure. Go lower.</li>
+<strong>Rising cluster count, falling modularity.</strong> Clusters are being split past the graph’s community structure. Go lower.</li>
 <li>
 <strong>Stability dips with a wide band.</strong> At that resolution, different seeds give different clusters: the partition is ambiguous. Avoid those resolutions.</li>
 <li>
 <strong>Stability of 1 at the extremes is not meaningful on its own.</strong> At very low resolution everything merges into one or a few clusters, and at very high resolution clusters approach single terms. Both are perfectly reproducible but uninformative. Always read stability together with the cluster count and modularity.</li>
 <li>
 <strong>Modularity peak.</strong> The resolution with the highest modularity is a reasonable default if there is no clear plateau.</li>
-</ul><p><strong>Modularity values.</strong> Above about 0.3 suggests meaningful community structure; GO overlap networks are often 0.5 to 0.8, because related terms form tight groups.</p>
+</ul><p><strong>Modularity values.</strong> Above about 0.3 suggests clear community structure in the graph; GO overlap networks are often 0.5 to 0.8, because related terms form tight groups.</p>
 <p><strong>What to change.</strong> <code>leiden_resolution</code> in <code><a href="reference/run_comparison_networks.html">run_comparison_networks()</a></code>.</p>
 <p><strong>Notes.</strong></p>
 <ul><li>The default objective is <strong>modularity</strong>, where resolutions around 1 are standard (the default is 1). With <code>objective_function = "CPM"</code>, resolution means something different (an edge-density cutoff) and needs much smaller values, such as 0.01 to 0.1. Pass <code>resolutions = seq(0.005, 0.1, by = 0.005)</code> to the sweep in that case.</li>
@@ -163,13 +164,13 @@
 <ul><li>
 <strong>Name the module from its genes, not only its terms.</strong> GO term names are generic (“regulation of cellular process”); the driver genes say what is actually changing.</li>
 <li>
-<strong>Large dots for one or two genes</strong> mean the cluster exists because a few genes are annotated to many terms. The cluster may represent one gene’s annotation breadth rather than a coordinated program. Treat it with care.</li>
+<strong>Large dots for one or two genes</strong> mean the cluster exists because a few genes are annotated to many terms. The cluster may represent one gene’s annotation breadth rather than a shared set of genes. Treat it with care.</li>
 <li>
-<strong>Many medium dots</strong> mean the cluster is supported by a broad set of genes shared across its terms: a more convincing module.</li>
+<strong>Many medium dots</strong> mean the cluster is supported by a broad set of genes shared across its terms: the module does not rest on one or two genes.</li>
 <li>
-<strong>Mixed colours within a cluster</strong> mean its genes move in both directions. This matches a grey (mixed) node colour in the network plot and is common for regulatory programs.</li>
+<strong>Mixed colours within a cluster</strong> mean its genes move in both directions. This matches a grey (mixed) node colour in the network plot and is common for broad regulatory terms.</li>
 <li>
-<strong>The same gene driving several clusters</strong> (it appears in more than one column) links those modules. They may be one program that Leiden split; try a lower resolution.</li>
+<strong>The same gene driving several clusters</strong> (it appears in more than one column) links those modules. They may be one group of annotations that Leiden split; try a lower resolution.</li>
 <li>
 <strong>Watch for housekeeping families.</strong> Ribosomal (Rpl/Rps), mitochondrial (mt-), and histone genes can dominate clusters through sheer annotation volume, and can reflect technical differences between samples.</li>
 </ul><p><strong>Rows</strong> are ordered by the first cluster each gene drives, so the plot reads roughly along a diagonal.</p>
@@ -188,18 +189,19 @@
 <td>Leiden cluster (legend on the left)</td>
 <td>See the modules; match them to the driver-gene plot and wordclouds</td>
 </tr><tr><td><code>zscore</code></td>
-<td>Continuous direction z-score, blue to white to red</td>
+<td>Continuous direction score, blue to white to red</td>
 <td>See <em>how strongly</em> each term leans one way</td>
 </tr><tr><td><code>themes</code></td>
 <td>Leiden cluster, with a labelled hull around each cluster</td>
 <td>Name the modules (labels set by <code>label_by</code>)</td>
 </tr></tbody></table><p>In <code>regulation</code>, <code>leiden</code> and <code>themes</code>, node shape also shows direction (circle = up, square = down, diamond = mixed). In all of them, edge width shows Jaccard overlap and node size shows the number of DE genes in the term.</p>
-<p><strong>The direction z-score.</strong> For each term, <code>z = (n_up - n_down) / sqrt(n_up + n_down)</code>, using the term’s DE genes. It combines <em>how consistently</em> the genes move with <em>how many</em> genes support it:</p>
+<p><strong>The direction score.</strong> For each term (column <code>zscore</code>), <code>z = (n_up - n_down) / sqrt(n_up + n_down)</code>, using the term’s DE genes. It combines <em>how consistently</em> the genes move with <em>how many</em> genes support it:</p>
 <ul><li>A term with 9 up and 1 down genes: z = 2.5 (clearly up).</li>
 <li>A term with 3 up and 2 down: z = 0.45 (mixed).</li>
 <li>A term with a single up gene: z = 1.0 (up, but weakly supported).</li>
 </ul><p>Terms are called up or down when |z| is at least <code>zscore_threshold</code> (default 1) and mixed otherwise. Raise it (for example to 2) for stricter direction calls.</p>
-<p>The output tables also keep the <strong>mean</strong> and <strong>median</strong> log2 fold change for each term. The mean can be pulled in the opposite direction by one gene with an extreme fold change; the median and z-score are more robust.</p>
+<p>The score has the form of a z-score but is descriptive, not a statistical test: a term’s genes are correlated and were selected as DEGs, so it has no calibrated null distribution. Use it to rank and colour terms, not to assign p-values.</p>
+<p>The output tables also keep the <strong>mean</strong> and <strong>median</strong> log2 fold change for each term. The mean can be pulled in the opposite direction by one gene with an extreme fold change; the median and the direction score are more robust.</p>
 <p><strong>With <code>split_direction = TRUE</code></strong> every term in the <code>_up</code> network is up and every term in the <code>_down</code> network is down, so the <code>regulation</code> and <code>zscore</code> plots are a single colour. Use the <code>leiden</code> plot and driver genes for those networks.</p>
 <hr></div>
 <div class="section level2">

@@ -23,7 +23,8 @@ and \code{avg_log2FC}), as returned by
 \code{\link{generate_overlap_network}}.}
 
 \item{outputDir}{Character path to the root output directory. Word cloud
-PNGs are saved to \code{<outputDir>/<comparison>/networks/}.}
+PNGs are saved to \code{<outputDir>/<comparison>/networks/}, which is
+created if it does not exist. A trailing \code{/} is optional.}
 
 \item{comparison}{Character string identifying the comparison (e.g.,
 \code{"CD206_Car_vs_Bleo"}). Used to construct the output sub-directory.}

@@ -27,8 +27,8 @@ Defaults to the objective stored in \code{net_result}.}
 in \code{net_result}. \code{NULL} disables seeding.}
 
 \item{outdir}{Character path to an output directory. If non-\code{NULL},
-all four \code{\link{network_tables}} are written there as CSVs. Default
-\code{NULL}.}
+all four \code{\link{network_tables}} are written there as CSVs (a
+trailing \code{/} is optional). Default \code{NULL}.}
 
 \item{file_stem}{Character filename prefix. Defaults to the
 \code{file_stem} stored in \code{net_result}.}

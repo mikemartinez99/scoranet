@@ -15,7 +15,8 @@ which must contain at least the element \code{go_term_df}.}
 replaced with underscores to match network node naming conventions.}
 
 \item{outdir}{Character path to the output directory. If non-\code{NULL},
-a CSV file is written. The directory is created if it does not exist.}
+a CSV file is written. The directory is created if it does not exist; a
+trailing \code{/} is optional.}
 
 \item{label}{Optional character label used in the output filename. If
 \code{NULL}, defaults to \code{"cluster-<id>"}.}

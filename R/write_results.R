@@ -6,8 +6,8 @@
 #'
 #' @param de_list The output of \code{\link{run_cluster_de}}: a named list
 #'   whose elements each contain \code{$degs} and \code{$tested} data frames.
-#' @param outSubDir Character path to the output directory. Created
-#'   recursively if it does not exist.
+#' @param outSubDir Character path to the output directory, with or without a
+#'   trailing \code{/}. Created recursively if it does not exist.
 #'
 #' @return \code{invisible(NULL)}. Called for its side effect of writing CSV
 #'   files.
@@ -24,9 +24,7 @@
 #' @export
 write_de <- function(de_list, outSubDir) {
 
-  if (!dir.exists(outSubDir)) {
-    dir.create(outSubDir, recursive = TRUE)
-  }
+  outSubDir <- .as_dir(outSubDir)
 
   for (i in names(de_list)) {
 
@@ -65,8 +63,8 @@ write_de <- function(de_list, outSubDir) {
 #'   output of \code{\link{run_go_ora}}. When \code{split_direction = TRUE},
 #'   each element must instead be a list with \code{$up} and \code{$down}
 #'   \code{enrichResult} objects.
-#' @param outSubDir Character path to the output directory. Created
-#'   recursively if it does not exist.
+#' @param outSubDir Character path to the output directory, with or without a
+#'   trailing \code{/}. Created recursively if it does not exist.
 #' @param split_direction Logical. If \code{TRUE}, write separate files for
 #'   the \code{$up} and \code{$down} results of each cluster. Must match the
 #'   \code{split_direction} used in \code{\link{run_go_ora}}; a mismatch is an
@@ -87,9 +85,7 @@ write_de <- function(de_list, outSubDir) {
 #' @export
 write_go <- function(go_list, outSubDir, split_direction = FALSE) {
 
-  if (!dir.exists(outSubDir)) {
-    dir.create(outSubDir, recursive = TRUE)
-  }
+  outSubDir <- .as_dir(outSubDir)
 
   .write_go <- function(ego, celltypeName, direction_label = NULL) {
     if (is.null(ego)) return(invisible(NULL))

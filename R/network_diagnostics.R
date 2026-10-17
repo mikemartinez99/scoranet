@@ -10,9 +10,12 @@
 #'   \item{Stability (ARI)}{Mean adjusted Rand index between every pair of
 #'     seeds. Values near 1 mean the partition does not depend on the seed.}
 #' }
-#' A good resolution sits on a plateau where the cluster count is steady and
-#' stability is high. The resolution used for \code{net_result} is marked with
-#' a dashed line.
+#' A practical choice is a resolution on a plateau where the cluster count is
+#' steady and stability is high. The resolution used for \code{net_result} is
+#' marked with a dashed line. These metrics describe how robust the clustering
+#' is for this one graph; they do not show that the clusters are biologically
+#' distinct, because the graph itself depends on GO annotations, DEG cutoffs
+#' and \code{overlap_threshold}.
 #'
 #' @param net_result One network result from \code{\link{run_comparison_networks}}
 #'   or \code{\link{generate_overlap_network}}, or an \code{igraph} network.
@@ -423,7 +426,8 @@ plot_comparison_overview <- function(de_list, go_list = NULL, net_list = NULL,
 #' @param outdir Character path. If not \code{NULL}, every figure is saved
 #'   there as a PNG: \code{comparison-overview.png} and, per network,
 #'   \code{<network>-leiden-sweep.png}, \code{<network>-overlap-threshold.png},
-#'   and \code{<network>-driver-genes.png}. Default \code{NULL}.
+#'   and \code{<network>-driver-genes.png}. Created if it does not exist; a
+#'   trailing \code{/} is optional. Default \code{NULL}.
 #' @param resolutions,n_seeds Passed to \code{\link{plot_leiden_sweep}}.
 #' @param thresholds Passed to \code{\link{plot_overlap_threshold}}.
 #' @param top_n Passed to \code{\link{plot_driver_genes}}.
@@ -444,7 +448,7 @@ run_network_diagnostics <- function(net_list,
                                     thresholds = seq(0.05, 0.5, by = 0.05),
                                     top_n = 5) {
 
-  if (!is.null(outdir) && !dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
+  if (!is.null(outdir)) outdir <- .as_dir(outdir)
 
   .try_plot <- function(label, expr) {
     tryCatch(expr, error = function(e) {

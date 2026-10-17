@@ -30,10 +30,13 @@ single genes with extreme fold changes).}
 negative fold change.}
 \item{go_id}{GO ID of the term (\code{NA} if \code{ego} has no
 \code{ID} column).}
-\item{zscore}{Direction z-score,
+\item{zscore}{Direction score,
 \eqn{(n_{up} - n_{down}) / \sqrt{n_{up} + n_{down}}}, as used by
 GOplot. Large positive values mean the term's genes are
-consistently up; values near 0 mean mixed.}
+consistently up; values near 0 mean mixed. It has the form of a
+z-score but is descriptive: the genes are correlated and were
+selected as DEGs, so it has no calibrated null distribution and
+should not be converted to a p-value.}
 }
 All values are 0 for a term with no DE genes.}
 \item{de_genes}{Character vector of unique DE gene symbols.}

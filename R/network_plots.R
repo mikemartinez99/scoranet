@@ -7,7 +7,7 @@
   leiden     = list(title = " (Leiden)", file = "-clustered-leiden.png",
                     width = 12.5, height = 10,
                     tables = c("summary", "cluster_stats", "membership")),
-  zscore     = list(title = " (direction z-score)", file = "-zscore.png",
+  zscore     = list(title = " (direction score)", file = "-zscore.png",
                     width = 11, height = 10,
                     tables = c("summary", "membership")),
   themes     = list(title = " (cluster themes)", file = "-themes.png",
@@ -40,8 +40,9 @@
 #'     \item{\code{"regulation"}}{Nodes filled by direction: up, down, or
 #'       mixed.}
 #'     \item{\code{"zscore"}}{Nodes filled by a continuous blue-white-red
-#'       gradient of the direction z-score. Needs z-scores in the network
-#'       (see \code{\link{build_network_inputs}}).}
+#'       gradient of the direction score (a descriptive score, not a
+#'       statistical test). Needs direction scores in the network (see
+#'       \code{\link{build_network_inputs}}).}
 #'     \item{\code{"themes"}}{The Leiden plot annotated with cluster themes: a
 #'       shaded hull around each cluster with a callout naming its theme, and a
 #'       layout that keeps each cluster together (so node positions differ from
@@ -74,14 +75,14 @@
 #'   \code{"<name> (Leiden)"}. A title given here is used for every type.
 #' @param outdir Character path to an output directory. If non-\code{NULL},
 #'   each plot is saved as a PNG along with the CSV tables it shows (see
-#'   Side effects). The directory is created if it does not exist. Default
-#'   \code{NULL} (nothing is written).
+#'   Side effects). The directory is created if it does not exist; a trailing
+#'   \code{/} is optional. Default \code{NULL} (nothing is written).
 #' @param file_stem Character filename prefix. Defaults to the
 #'   \code{file_stem} stored in \code{net_result}.
 #'
 #' @return One \code{ggplot} object when one type is drawn, otherwise a named
 #'   list of \code{ggplot} objects. \code{zscore} is skipped (with a message)
-#'   when the network has no z-scores and other types are requested; asking
+#'   when the network has no direction scores and other types are requested; asking
 #'   for \code{zscore} alone is then an error.
 #'
 #' @section Side effects:
@@ -118,11 +119,11 @@ plot_network <- function(net_result,
   if ("zscore" %in% type && all(is.na(igraph::V(network)$zscore))) {
     if (length(type) == 1) {
       cli::cli_abort(c(
-        "This network has no direction z-scores, so there is no {.val zscore} plot.",
-        "i" = "Build it from {.fn build_network_inputs} output to get z-scores."
+        "This network has no direction scores, so there is no {.val zscore} plot.",
+        "i" = "Build it from {.fn build_network_inputs} output to get direction scores."
       ))
     }
-    cli::cli_alert_info("Skipped the {.val zscore} plot: the network has no direction z-scores.")
+    cli::cli_alert_info("Skipped the {.val zscore} plot: the network has no direction scores.")
     type <- setdiff(type, "zscore")
   }
 
@@ -250,8 +251,8 @@ network_tables <- function(net_result, which = "all") {
 #' @param seed Integer seed for Leiden clustering. Defaults to the seed stored
 #'   in \code{net_result}. \code{NULL} disables seeding.
 #' @param outdir Character path to an output directory. If non-\code{NULL},
-#'   all four \code{\link{network_tables}} are written there as CSVs. Default
-#'   \code{NULL}.
+#'   all four \code{\link{network_tables}} are written there as CSVs (a
+#'   trailing \code{/} is optional). Default \code{NULL}.
 #' @param file_stem Character filename prefix. Defaults to the
 #'   \code{file_stem} stored in \code{net_result}.
 #'
@@ -316,12 +317,6 @@ plot.scoranet_network <- function(x, y, ...) {
     )
   }
   invisible(file.path(outdir, paste0(file_stem, .table_files[names(tables)])))
-}
-
-# `outdir` with a trailing slash, created if missing.
-.as_dir <- function(outdir) {
-  if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
-  if (grepl("/$", outdir)) outdir else paste0(outdir, "/")
 }
 
 # Stop unless `x` is a network result from this version of the package.

@@ -12,8 +12,8 @@ output of \code{\link{run_go_ora}}. When \code{split_direction = TRUE},
 each element must instead be a list with \code{$up} and \code{$down}
 \code{enrichResult} objects.}
 
-\item{outSubDir}{Character path to the output directory. Created
-recursively if it does not exist.}
+\item{outSubDir}{Character path to the output directory, with or without a
+trailing \code{/}. Created recursively if it does not exist.}
 
 \item{split_direction}{Logical. If \code{TRUE}, write separate files for
 the \code{$up} and \code{$down} results of each cluster. Must match the

@@ -83,3 +83,13 @@ test_that("write_cluster_results handles hyphen-to-underscore in go_term", {
   expect_equal(nrow(result), 1)
   expect_equal(result$go_term, "cell_cell_adhesion")
 })
+
+test_that("write_cluster_results writes inside outdir without a trailing slash", {
+  outdir <- file.path(tempdir(), "test_cluster_noslash")
+  write_cluster_results(make_mock_net_result(), "immune_response",
+                        outdir = outdir, label = "x")
+
+  expect_true(file.exists(file.path(outdir, "network-cluster-x.csv")))
+  expect_false(file.exists(paste0(outdir, "network-cluster-x.csv")))
+  unlink(outdir, recursive = TRUE)
+})

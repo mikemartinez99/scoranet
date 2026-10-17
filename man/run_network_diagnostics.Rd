@@ -27,7 +27,8 @@ overview.}
 \item{outdir}{Character path. If not \code{NULL}, every figure is saved
 there as a PNG: \code{comparison-overview.png} and, per network,
 \code{<network>-leiden-sweep.png}, \code{<network>-overlap-threshold.png},
-and \code{<network>-driver-genes.png}. Default \code{NULL}.}
+and \code{<network>-driver-genes.png}. Created if it does not exist; a
+trailing \code{/} is optional. Default \code{NULL}.}
 
 \item{resolutions, n_seeds}{Passed to \code{\link{plot_leiden_sweep}}.}
 

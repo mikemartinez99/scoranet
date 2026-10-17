@@ -114,3 +114,16 @@ test_that("write_de returns invisible NULL", {
 
   unlink(outdir, recursive = TRUE)
 })
+
+test_that("write_de writes inside outSubDir without a trailing slash", {
+  outdir <- file.path(tempdir(), "test_de_noslash")
+  de_list <- list(ClusterA = mock_de_cluster(
+    degs = data.frame(gene = "G1", avg_log2FC = 1, p_val_adj = 0.01)
+  ))
+
+  write_de(de_list, outdir)
+
+  expect_true(file.exists(file.path(outdir, "ClusterA_DE_Results.csv")))
+  expect_false(file.exists(paste0(outdir, "ClusterA_DE_Results.csv")))
+  unlink(outdir, recursive = TRUE)
+})

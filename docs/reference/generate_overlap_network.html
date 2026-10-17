@@ -86,7 +86,7 @@ and cluster-level statistics are exported when <code>outdir</code> is set.</p>
 and at least the column <code>avg_log2FC</code> (mean fold-change across member
 genes), as returned by <code><a href="build_network_inputs.html">build_network_inputs</a></code>. If it also has
 <code>zscore</code>, <code>median_log2FC</code>, <code>n_up</code>, and <code>n_down</code>
-columns, node direction is called from the z-score (see
+columns, node direction is called from the direction score (see
 <code>zscore_threshold</code>); otherwise from the sign of <code>avg_log2FC</code>.</p></dd>
 
 
@@ -137,7 +137,8 @@ session. <code>NULL</code> disables seeding. Default <code>1234</code>.</p></dd>
 
 <dt id="arg-outdir">outdir<a class="anchor" aria-label="anchor" href="#arg-outdir"></a></dt>
 <dd><p>Character path to the output directory. If <code>NULL</code>,
-no files are written. The directory is created if it does not exist.</p></dd>
+no files are written. The directory is created if it does not exist; a
+trailing <code>/</code> is optional.</p></dd>
 
 
 <dt id="arg-file-stem">file_stem<a class="anchor" aria-label="anchor" href="#arg-file-stem"></a></dt>
@@ -155,7 +156,7 @@ parsed from <code>collection_name</code> around <code>"_vs_"</code>.</p></dd>
 
 <dt id="arg-zscore-threshold">zscore_threshold<a class="anchor" aria-label="anchor" href="#arg-zscore-threshold"></a></dt>
 <dd><p>Numeric. A node is called <code>"up"</code> when its
-direction z-score is at least this value, <code>"down"</code> when it is at
+direction score is at least this value, <code>"down"</code> when it is at
 most minus this value, and <code>"mixed"</code> otherwise. Default <code>1</code>.</p></dd>
 
 
@@ -205,7 +206,7 @@ coefficients (before thresholding).</p></dd>
 <code>"down"</code>, or <code>"mixed"</code>), <code>avg_log2FC</code> (mean),
 <code>median_log2FC</code>, <code>n_up</code>, <code>n_down</code>, <code>zscore</code>,
 <code>go_id</code>, and <code>leiden_resolution</code>. The direction columns are
-<code>NA</code> when <code>results_set</code> has no z-score columns, and
+<code>NA</code> when <code>results_set</code> has no direction-score columns, and
 <code>go_id</code> is <code>NA</code> when it has no GO IDs.</p></dd>
 
 <dt>cluster_stats</dt>

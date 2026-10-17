@@ -1,4 +1,4 @@
-# Small network with two modules and direction z-scores.
+# Small network with two modules and direction scores.
 make_plot_net <- function(with_z = TRUE, ...) {
   collection <- list(
     up_term    = paste0("U", 1:6),
@@ -38,9 +38,9 @@ test_that("plot_network returns a named list for several types", {
   expect_named(plot_network(net, "all"), c("regulation", "leiden", "zscore", "themes"))
 })
 
-test_that("plot_network handles networks without z-scores", {
+test_that("plot_network handles networks without direction scores", {
   net <- make_plot_net(with_z = FALSE)
-  expect_error(plot_network(net, "zscore"), "z-scores")
+  expect_error(plot_network(net, "zscore"), "direction scores")
   all <- suppressMessages(plot_network(net, "all"))
   expect_named(all, c("regulation", "leiden", "themes"))
 })

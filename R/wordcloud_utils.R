@@ -13,7 +13,8 @@
 #'   and \code{avg_log2FC}), as returned by
 #'   \code{\link{generate_overlap_network}}.
 #' @param outputDir Character path to the root output directory. Word cloud
-#'   PNGs are saved to \code{<outputDir>/<comparison>/networks/}.
+#'   PNGs are saved to \code{<outputDir>/<comparison>/networks/}, which is
+#'   created if it does not exist. A trailing \code{/} is optional.
 #' @param comparison Character string identifying the comparison (e.g.,
 #'   \code{"CD206_Car_vs_Bleo"}). Used to construct the output sub-directory.
 #' @param min_terms Integer. Minimum number of (post-merge) GO term phrases
@@ -119,7 +120,7 @@ write_cluster_wordclouds_patchwork <- function(
       patchwork::plot_annotation(title = celltype)
 
     out_file <- paste0(
-      outputDir, comparison, "/networks/",
+      .as_dir(outputDir, comparison, "networks"),
       celltype_safe, "_all_clusters_wordclouds.png"
     )
 

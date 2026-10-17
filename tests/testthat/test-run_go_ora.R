@@ -111,3 +111,29 @@ test_that("run_go_ora errors when simplify = TRUE is used with ont = 'ALL'", {
     "ALL"
   )
 })
+
+test_that("run_go_ora works with the default outputDir = NULL and writes nothing", {
+  skip_if_not_installed("org.Hs.eg.db")
+  before <- list.files(tempdir(), recursive = TRUE)
+
+  res <- suppressMessages(suppressWarnings(
+    run_go_ora(mock_ora_input(), org.Hs.eg.db::org.Hs.eg.db)
+  ))
+
+  expect_s4_class(res$Fib, "enrichResult")
+  expect_equal(attr(res, "qc")$set, c("Fib", "Empty"))
+  expect_setequal(list.files(tempdir(), recursive = TRUE), before)
+})
+
+test_that("run_go_ora writes the QC CSV inside an outputDir without a trailing slash", {
+  skip_if_not_installed("org.Hs.eg.db")
+  outdir <- file.path(tempdir(), "test_ora_noslash")
+
+  suppressMessages(suppressWarnings(
+    run_go_ora(mock_ora_input(), org.Hs.eg.db::org.Hs.eg.db, outputDir = outdir)
+  ))
+
+  expect_true(file.exists(file.path(outdir, "GO_ORA_QC_summary.csv")))
+  expect_false(file.exists(paste0(outdir, "GO_ORA_QC_summary.csv")))
+  unlink(outdir, recursive = TRUE)
+})

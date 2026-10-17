@@ -67,22 +67,16 @@
 <p><!-- badges: end --></p>
 <hr>
 <div class="float">
-<img src="reference/figures/overview.png" alt="scoranet example outputs: direction z-score network, cluster-theme network, Leiden resolution sweep, and driver genes"><div class="figcaption">scoranet example outputs: direction z-score network, cluster-theme network, Leiden resolution sweep, and driver genes</div>
+<img src="reference/figures/overview.png" alt="scoranet example outputs: direction score network, cluster-theme network, Leiden resolution sweep, and driver genes"><div class="figcaption">scoranet example outputs: direction score network, cluster-theme network, Leiden resolution sweep, and driver genes</div>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Install the Bioconductor dependencies first if needed</p>
+<p>Install the latest version from Github via <code>devtools</code></p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"BiocManager"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"clusterProfiler"</span>, <span class="st">"GO.db"</span>, <span class="st">"AnnotationDbi"</span>, <span class="st">"org.Mm.eg.db"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-<p>Then install the latest version from Github</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span> <span class="co"># if not already installed</span></span>
-<span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"devtools"</span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://devtools.r-lib.org/" class="external-link">devtools</a></span><span class="op">)</span></span>
+<span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"mikemartinez99/scoranet"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mikemartinez99.github.io/scoranet/">scoranet</a></span><span class="op">)</span></span></code></pre></div>
@@ -90,7 +84,7 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>Single-cell experiments often produce hundreds of differentially expressed genes per cell type, and gene ontology (GO) over-representation analysis on those genes can return dozens of overlapping, redundant terms. <strong>scoranet</strong> (Single-Cell Over-Representation Analysis NETworks) turns that list into a map of biological programs to help make sense of your results!</p>
+<p>Single-cell experiments often produce hundreds of differentially expressed genes per cell type, and gene ontology (GO) over-representation analysis on those genes can return dozens of overlapping, redundant terms. <strong>scoranet</strong> (Single-Cell Over-Representation Analysis NETworks) turns that list into a map of biological programs to help make sense of your results. Outputs are fully editable <code>ggplot2</code> objects.</p>
 <blockquote>
 <p>[!IMPORTANT] <strong>scoranet is compatible with Seurat v4 and v5!</strong></p>
 </blockquote>
@@ -114,7 +108,7 @@
 <div class="section level2">
 <h2 id="change-log">Change-log<a class="anchor" aria-label="anchor" href="#change-log"></a>
 </h2>
-<p><strong><img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version"></strong> <strong><img src="https://img.shields.io/badge/Major-red" alt="Release"></strong> <em>October 17th, 2026: “The network update”</em><br> - <strong>run_cluster_de</strong> returns DEGs and all tested genes per cluster, with explicit Seurat <strong>FindMarkers</strong> pre-filters and Seurat 5 support<br> - <strong>run_go_ora</strong> supports tested-gene universes, up/down split analysis, and optional term simplification<br> - <strong>run_comparison_networks</strong> builds seeded Leiden networks (modularity objective) with z-score direction calls<br> - Networks follow a <strong>build, diagnose, then plot</strong> workflow: <strong>generate_overlap_network</strong> builds and clusters, <strong>recluster_network</strong> re-runs Leiden at a new resolution without rebuilding, and <strong>plot_network</strong> draws figures on demand<br> - Added <strong>ggraph</strong> network plots via <strong>plot_network</strong>: direction (<code>regulation</code>), Leiden clusters, z-score, and <strong>cluster themes</strong> named by the GO hierarchy; each saved PNG comes with its CSV tables<br> - Added <strong>network_tables</strong> to get the summary, cluster stats, membership and themes tables in R<br> - Added <strong>diagnostics</strong>: Leiden resolution sweep, overlap threshold, driver genes, and comparison overview<br> - Added <strong>write_de</strong> and <strong>write_go</strong> (replacing write_de_results)<br> - Added <strong>unit tests</strong> and the <strong>interferon-beta PBMC vignette</strong><br></p>
+<p><strong><img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version"></strong> <strong><img src="https://img.shields.io/badge/Major-red" alt="Release"></strong> <em>October 17th, 2026: “The network update”</em><br> - <strong>run_cluster_de</strong> returns DEGs and all tested genes per cluster, with explicit Seurat <strong>FindMarkers</strong> pre-filters and Seurat 5 support<br> - <strong>run_go_ora</strong> supports tested-gene universes, up/down split analysis, and optional term simplification<br> - <strong>run_comparison_networks</strong> builds seeded Leiden networks (modularity objective) with direction-score calls<br> - Networks follow a <strong>build, diagnose, then plot</strong> workflow: <strong>generate_overlap_network</strong> builds and clusters, <strong>recluster_network</strong> re-runs Leiden at a new resolution without rebuilding, and <strong>plot_network</strong> draws figures on demand<br> - Added <strong>ggraph</strong> network plots via <strong>plot_network</strong>: direction (<code>regulation</code>), Leiden clusters, direction score, and <strong>cluster themes</strong> named by the GO hierarchy; each saved PNG comes with its CSV tables<br> - Added <strong>network_tables</strong> to get the summary, cluster stats, membership and themes tables in R<br> - Added <strong>diagnostics</strong>: Leiden resolution sweep, overlap threshold, driver genes, and comparison overview<br> - Added <strong>write_de</strong> and <strong>write_go</strong> (replacing write_de_results)<br> - Added <strong>unit tests</strong> and the <strong>interferon-beta PBMC vignette</strong><br></p>
 </div>
 <div class="section level2">
 <h2 id="ai-use-disclosure">AI Use Disclosure<a class="anchor" aria-label="anchor" href="#ai-use-disclosure"></a>

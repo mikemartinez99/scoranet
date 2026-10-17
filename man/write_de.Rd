@@ -10,8 +10,8 @@ write_de(de_list, outSubDir)
 \item{de_list}{The output of \code{\link{run_cluster_de}}: a named list
 whose elements each contain \code{$degs} and \code{$tested} data frames.}
 
-\item{outSubDir}{Character path to the output directory. Created
-recursively if it does not exist.}
+\item{outSubDir}{Character path to the output directory, with or without a
+trailing \code{/}. Created recursively if it does not exist.}
 }
 \value{
 \code{invisible(NULL)}. Called for its side effect of writing CSV
