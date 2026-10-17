@@ -5,14 +5,20 @@
 <meta charset="utf-8">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<title>Genomic Data Science Utilities for the Genomic Data Science Core • GDSCtools</title>
+<title>Single-Cell Gene Ontology Over-Representation Networks • scoranet</title>
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" sizes="any" href="favicon.ico">
+<link rel="manifest" href="site.webmanifest">
 <script src="deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <link href="deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
 <script src="deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
-<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Genomic Data Science Utilities for the Genomic Data Science Core">
+<script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Single-Cell Gene Ontology Over-Representation Networks">
 <meta name="description" content="Utility functions for downstream single-cell RNA-seq analysis, including cluster-specific differential expression testing via Seurat, Gene Ontology over-representation analysis via clusterProfiler, Jaccard- overlap network construction with Leiden community detection via igraph, and word cloud visualization of network cluster themes via ggwordcloud. Designed for use with 10x Genomics Flex datasets processed through the Seurat pipeline.">
 <meta property="og:description" content="Utility functions for downstream single-cell RNA-seq analysis, including cluster-specific differential expression testing via Seurat, Gene Ontology over-representation analysis via clusterProfiler, Jaccard- overlap network construction with Leiden community detection via igraph, and word cloud visualization of network cluster themes via ggwordcloud. Designed for use with 10x Genomics Flex datasets processed through the Seurat pipeline.">
+<meta property="og:image" content="/logo.png">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -20,7 +26,7 @@
 
     <nav class="navbar navbar-expand-lg fixed-top bg-light" data-bs-theme="light" aria-label="Site navigation"><div class="container">
 
-    <a class="navbar-brand me-2" href="index.html">GDSCtools</a>
+    <a class="navbar-brand me-2" href="index.html">scoranet</a>
 
     <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
 
@@ -35,9 +41,7 @@
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
-<li><a class="dropdown-item" href="articles/Loading-Data.html">Loading-Data</a></li>
-    <li><a class="dropdown-item" href="articles/network-analysis.html">GO-ORA Network Analysis Workflow</a></li>
-    <li><a class="dropdown-item" href="articles/single-cell-gex-qc.html">Single Cell GEX Quality Control</a></li>
+<li><a class="dropdown-item" href="articles/network-analysis.html">GO-ORA Network Analysis Workflow</a></li>
   </ul>
 </li>
       </ul>
@@ -53,36 +57,75 @@
 </nav><div class="container template-home">
 <div class="row">
   <main id="main" class="col-md-9"><div class="section level1">
-<div class="page-header"><h1 id="gdsctools">GDSCtools<a class="anchor" aria-label="anchor" href="#gdsctools"></a>
-</h1></div>
-<p><strong>Dartmouth Genomic Data Science Core: General Utilities</strong></p>
-<p><img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version"><a href="https://dartmouth-data-analytics-core.github.io/GDSCtools/index.html" class="external-link"><img src="https://img.shields.io/badge/docs-pkgdown-blue.svg" alt="pkgdown documentation"></a> <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></p>
+<div class="page-header">
+<img src="logo.png" class="logo" alt=""><h1 id="scoranet-">scoranet <a class="anchor" aria-label="anchor" href="#scoranet-"></a>
+</h1>
+</div>
+<p><strong>Single-cell differential expression, GO over-representation analysis, and pathway overlap networks.</strong> Developed by Mike Martinez.</p>
+<p><img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version"><a href="https://dartmouth-data-analytics-core.github.io/GDSCtools/index.html" class="external-link"><img src="https://img.shields.io/badge/docs-pkgdown-blue.svg" alt="pkgdown documentation"></a> <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"><a href="https://codecov.io/gh/dartmouth-data-analytics-core/GDSCtools" class="external-link"><img src="https://codecov.io/gh/dartmouth-data-analytics-core/GDSCtools/branch/main/graph/badge.svg" alt="codecov"></a></p>
 <blockquote>
-<p>[!WARNING] <strong>🚧 In development:</strong><br>
-This package currently supports single-cell differential expression analysis, ORA analysis, and pathway network analysis.</p>
+<p>[!WARNING] <strong>🚧 In development:</strong> functions and defaults may still change between versions.</p>
 </blockquote>
+<div class="section level2">
+<h2 id="workflow">Workflow<a class="anchor" aria-label="anchor" href="#workflow"></a>
+</h2>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr>
+<th>Step</th>
+<th>Functions</th>
+</tr></thead>
+<tbody>
+<tr>
+<td>Differential expression per cell-type cluster</td>
+<td>
+<code><a href="reference/run_cluster_de.html">run_cluster_de()</a></code>, <code><a href="reference/write_de.html">write_de()</a></code>
+</td>
+</tr>
+<tr>
+<td>GO over-representation analysis</td>
+<td>
+<code><a href="reference/run_go_ora.html">run_go_ora()</a></code>, <code><a href="reference/write_go.html">write_go()</a></code>
+</td>
+</tr>
+<tr>
+<td>Pathway overlap networks with Leiden clustering and cluster themes</td>
+<td><code><a href="reference/run_comparison_networks.html">run_comparison_networks()</a></code></td>
+</tr>
+<tr>
+<td>Diagnostics for choosing network settings</td>
+<td><code><a href="reference/run_network_diagnostics.html">run_network_diagnostics()</a></code></td>
+</tr>
+<tr>
+<td>Module interpretation</td>
+<td>
+<code><a href="reference/write_cluster_wordclouds_patchwork.html">write_cluster_wordclouds_patchwork()</a></code>, <code><a href="reference/write_cluster_results.html">write_cluster_results()</a></code>
+</td>
+</tr>
+</tbody>
+</table>
+<p>See the <a href="vignettes/network-analysis.Rmd">network analysis vignette</a> for a full walkthrough, and <a href="DIAGNOSTICS.html">DIAGNOSTICS.md</a> for how to read the diagnostic figures.</p>
+</div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
+<p>Install the Bioconductor dependencies first if needed:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Install from github</span></span>
-<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"https://github.com/Dartmouth-Data-Analytics-Core/GDSCtools"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"BiocManager"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span></span>
+<span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"clusterProfiler"</span>, <span class="st">"GO.db"</span>, <span class="st">"AnnotationDbi"</span>, <span class="st">"org.Mm.eg.db"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Then install scoranet from GitHub:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"https://github.com/mikemartinez99/scoranet/"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="dependencies">Dependencies<a class="anchor" aria-label="anchor" href="#dependencies"></a>
 </h2>
-<p><strong>CRAN:</strong> igraph, dplyr, ggplot2, ggwordcloud, patchwork, scales, stringr</p>
-<p><strong>Bioconductor:</strong> Seurat, clusterProfiler, org.Mm.eg.db (or org.Hs.eg.db)</p>
-<p>Install Bioconductor dependencies first if needed:</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw">if</span> <span class="op">(</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"BiocManager"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"BiocManager"</span><span class="op">)</span></span>
-<span><span class="fu">BiocManager</span><span class="fu">::</span><span class="fu"><a href="https://bioconductor.github.io/BiocManager/reference/install.html" class="external-link">install</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"clusterProfiler"</span>, <span class="st">"org.Mm.eg.db"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level2">
-<h2 id="vignettes">Vignettes<a class="anchor" aria-label="anchor" href="#vignettes"></a>
-</h2>
-<p><a href="https://dartmouth-data-analytics-core.github.io/GDSCtools/articles/network-analysis.html" class="external-link">Pathway Network Analysis</a></p>
+<p><strong>CRAN:</strong> Seurat, cli, dplyr, ggforce, ggplot2, ggraph, ggwordcloud, igraph (&gt;= 2.1.0), patchwork, scales, stringr, withr</p>
+<p><strong>Bioconductor:</strong> clusterProfiler, GO.db, AnnotationDbi, and an organism annotation package (org.Mm.eg.db for mouse or org.Hs.eg.db for human)</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
@@ -103,7 +146,7 @@ This package currently supports single-cell differential expression analysis, OR
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>
 <ul class="list-unstyled">
-<li><a href="authors.html#citation">Citing GDSCtools</a></li>
+<li><a href="authors.html#citation">Citing scoranet</a></li>
 </ul>
 </div>
 

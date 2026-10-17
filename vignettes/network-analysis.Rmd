@@ -18,18 +18,17 @@ knitr::opts_chunk$set(
 
 # Introduction
 
-This vignette demonstrates a typical workflow for differential expression,
-GO over-representation analysis (GO-ORA), pathway overlap network generation,
-and pathway module interpretation using `scoranet`.
+This vignette walks through the `scoranet` workflow: cluster-specific
+differential expression, GO over-representation analysis (GO-ORA), pathway
+overlap networks, and interpretation of the network modules.
 
-The workflow includes:
+The workflow:
 
-1. Differential expression analysis
-2. GO enrichment analysis
-3. Pathway overlap network construction
-4. Leiden clustering of GO pathways
-5. Word cloud generation
-6. Extraction of biologically related GO modules
+1. Differential expression (DE) within each cell-type cluster
+2. GO over-representation analysis on each cluster's DEGs
+3. Pathway overlap networks with Leiden clustering
+4. Diagnostics to choose the network settings
+5. Interpreting modules: cluster themes, driver genes, and word clouds
 
 # Load Packages
 
@@ -40,116 +39,162 @@ library(org.Mm.eg.db)
 
 # Input Data
 
-This workflow assumes a Seurat object named `seurat_obj`
-containing single-cell RNA-seq data.
+This workflow assumes a normalized Seurat object named `seurat_obj` with a
+metadata column of cell-type clusters (`final_celltype`) and one of samples
+(`sample`). This example compares `Car` against `Bleo` within two fibroblast
+clusters. Seurat 4 and Seurat 5 objects both work; Seurat 5 layers split by
+sample are joined automatically.
 
-The identities being compared in this example are:
-
-- `Car`
-- `Bleo`
-
-across selected fibroblast clusters.
-
-# Differential Expression Analysis
-
-Run differential expression analysis across selected clusters.
+# 1. Differential Expression
 
 ```{r eval = FALSE}
 de_results <- run_cluster_de(
-  obj        = seurat_obj,
-  clusters   = c("Fibroblast 1", "Fibroblast 2"),
-  cluster_col = "final_celltypes",
-  ident1     = "Car",
-  ident2     = "Bleo"
+  obj         = seurat_obj,
+  clusters    = c("Fibroblast 1", "Fibroblast 2"),
+  cluster_col = "final_celltype",
+  ident_col   = "sample",
+  ident1      = "Car",
+  ident2      = "Bleo"
 )
 ```
 
-Write differential expression results to disk. This writes the DEGs and the full table of tested genes for each cluster.
+Each cluster's result is a list with two data frames:
+
+- `degs`: genes passing `padj_thresh` (default 0.05) and `logfc_thresh`
+  (default 0.5), with a `res` column giving the direction.
+- `tested`: every gene `FindMarkers` tested.
+
+Which genes get tested is controlled by two `FindMarkers` pre-filters,
+`seurat_min_pct` (default 0.1) and `seurat_logfc_threshold` (default 0.25).
+They are set explicitly because the `FindMarkers` defaults differ between
+Seurat 4 and 5. A short summary (tested genes, DEGs, and DEGs up in each
+identity) is printed for each cluster.
+
+Write the results to disk: `<cluster>_DE_Results.csv` (DEGs) and
+`<cluster>_tested_genes.csv` (all tested genes).
 
 ```{r eval = FALSE}
-write_de(
-  de_results,
-  outSubDir = "results/DE/"
-)
+write_de(de_results, outSubDir = "results/DE/")
 ```
 
-# GO Over-Representation Analysis
-
-Define the gene universe.
-
-```{r eval = FALSE}
-universe <- rownames(seurat_obj)
-```
-
-Run GO enrichment analysis using Biological Process ontology and save results.
+# 2. GO Over-Representation Analysis
 
 ```{r eval = FALSE}
 go_results <- run_go_ora(
   de_list   = de_results,
   org_db    = org.Mm.eg.db,
-  universe  = universe,
+  universe  = rownames(seurat_obj),
   ont       = "BP",
   outputDir = "results/GO/"
 )
 
+write_go(go_results, outSubDir = "results/GO/")
 ```
 
-Export GO enrichment results.
+Useful options:
 
-```{r eval = FALSE}
-write_go(
-  go_results,
-  outSubDir = "results/GO/"
-)
-```
+- **`use_tested_universe = TRUE`**: use each cluster's tested genes as the
+  background instead of `universe`. This is usually the more accurate
+  background, because genes that were never tested could not have been DEGs.
+- **`split_direction = TRUE`**: run ORA separately on up- and down-regulated
+  DEGs. Pass the same setting to `write_go()` and `run_comparison_networks()`;
+  a mismatch is an error.
+- **`simplify = TRUE`**: remove redundant GO terms with
+  `clusterProfiler::simplify()`. Off by default, because the networks below
+  already group redundant terms.
 
-# Pathway Overlap Network Analysis
+A QC summary of tested and retained gene sets per cluster is written to
+`outputDir`.
 
-Generate pathway overlap networks from GO enrichment results. This function will automatically generate a folder called "network/" in your `base_outdir`
+# 3. Pathway Overlap Networks
 
 ```{r eval = FALSE}
 net_results <- run_comparison_networks(
-  go_list     = go_results,
-  de_list     = de_results,
-  comp_label  = "Car_vs_Bleo",
-  base_outdir = "results/"
+  go_list           = go_results,
+  de_list           = de_results,
+  comp_label        = "Car_vs_Bleo",
+  base_outdir       = "results/",
+  overlap_threshold = 0.1,
+  leiden_resolution = 1
 )
 ```
 
-The resulting networks:
+Nodes are enriched GO terms. Two terms are connected when the Jaccard overlap
+of their DE genes is at least `overlap_threshold`; terms with no connection
+are dropped. Terms are then grouped with Leiden clustering (modularity
+objective, seeded so results are reproducible).
 
-- represent GO terms as nodes,
-- connect pathways sharing DE genes,
-- cluster pathways using Leiden community detection,
-- and identify higher-order biological programs.
+Each term's direction is called from a z-score of its DE genes
+(`(n_up - n_down) / sqrt(n_up + n_down)`): up, down, or mixed, with
+`zscore_threshold` (default 1) as the cutoff. Mean and median log2 fold
+changes are kept alongside.
 
-# Export GO Cluster Membership
+Each element of `net_results` holds the `igraph` network, a `go_term_df`
+table of terms and clusters, and four editable `ggplot` objects in `$plots`,
+also saved to `results/Car_vs_Bleo/networks/`:
 
-Export GO terms and their associated Leiden clusters. This is not baked into the function above yet.
+| Plot | Shows |
+|---|---|
+| `plain` | Nodes coloured by direction (up, down, mixed) |
+| `leiden` | Nodes coloured by Leiden cluster |
+| `zscore` | Nodes coloured by a continuous direction z-score |
+| `themes` | Each cluster outlined and labelled with its shared GO parent terms |
 
 ```{r eval = FALSE}
-for (i in names(net_results)) {
-
-  x <- net_results[[i]]$go_term_df
-
-  cluster <- gsub("/", "_", i)
-
-  name <- paste0(cluster, "_cluster_membership.csv")
-
-  write.csv(
-    x,
-    file = paste0(
-      outputDir,
-      "CD206_Car_vs_Bleo/networks/",
-      name
-    )
-  )
-}
+net_results[["Fibroblast 1"]]$plots$themes
 ```
 
-# Generate Word Clouds
+The themes plot labels each cluster with up to two higher-level GO terms that
+its terms fall under, with how many terms they cover (for example
+"cell cycle (48/59)"). A cluster with no specific shared parent is labelled
+with its most connected term and flagged; this usually means the cluster mixes
+unrelated terms. Use `theme_label = "keywords"`, `"phrase"`, or `"hub"` for
+other label styles. The labels are also available as a table:
 
-Generate cluster-specific pathway word clouds.
+```{r eval = FALSE}
+net_results[["Fibroblast 1"]]$cluster_themes
+```
+
+# 4. Choosing Network Settings with Diagnostics
+
+`run_network_diagnostics()` builds four diagnostic figures, all returned as
+editable `ggplot` objects and optionally saved as PNGs:
+
+```{r eval = FALSE}
+dx <- run_network_diagnostics(
+  net_list = net_results,
+  de_list  = de_results,
+  go_list  = go_results,
+  outdir   = "results/Car_vs_Bleo/diagnostics/"
+)
+
+dx$overview                                       # DEGs, terms, clusters per cell type
+dx$networks[["Fibroblast 1"]]$overlap_threshold   # terms kept and dropped by threshold
+dx$networks[["Fibroblast 1"]]$leiden_sweep        # clusters, modularity, stability by resolution
+dx$networks[["Fibroblast 1"]]$driver_genes        # genes each cluster is built on
+```
+
+Each function can also be run on its own: `plot_comparison_overview()`,
+`plot_overlap_threshold()`, `plot_leiden_sweep()`, and `plot_driver_genes()`.
+
+Suggested order:
+
+1. **Overlap threshold.** Choose the threshold that cuts most weak edges while
+   dropping few terms. With small GO terms, a threshold of 0.1 can let a
+   single shared gene connect two terms; 0.2 is often a better starting point.
+2. **Leiden resolution.** After setting the threshold, choose a resolution on
+   a plateau where the cluster count is steady, modularity is high, and
+   stability is close to 1.
+3. **Re-run** `run_comparison_networks()` with the chosen
+   `overlap_threshold` and `leiden_resolution`.
+
+`DIAGNOSTICS.md` in the package repository explains how to read each figure.
+
+# 5. Interpreting Modules
+
+## Word clouds
+
+Word clouds of each cluster's GO term names:
 
 ```{r eval = FALSE}
 write_cluster_wordclouds_patchwork(
@@ -159,25 +204,33 @@ write_cluster_wordclouds_patchwork(
 )
 ```
 
-These word clouds summarize dominant biological themes
-within each Leiden pathway module.
+## Cluster membership
 
-# Inspect a Specific Biological Module
+Export every GO term with its Leiden cluster and direction statistics:
 
-Extract all GO terms belonging to the same Leiden cluster
-as a target GO term.
+```{r eval = FALSE}
+for (nm in names(net_results)) {
+  write.csv(
+    net_results[[nm]]$go_term_df,
+    file = file.path("results/Car_vs_Bleo/networks",
+                     paste0(gsub("[ /]", "_", nm), "_cluster_membership.csv")),
+    row.names = FALSE
+  )
+}
+```
 
-For example, the extracellular matrix organization module:
+## Terms in one module
+
+Extract all GO terms in the same Leiden cluster as a term of interest, for
+example the extracellular matrix module:
 
 ```{r eval = FALSE}
 ecm_terms <- write_cluster_results(
-  net_result = net_results[["Fibroblast_1"]],
+  net_result = net_results[["Fibroblast 1"]],
   go_term    = "extracellular matrix organization",
   outdir     = "results/Car_vs_Bleo/networks/"
 )
 ```
-
-This can help identify coordinated biological programs.
 
 # Session Information
 
