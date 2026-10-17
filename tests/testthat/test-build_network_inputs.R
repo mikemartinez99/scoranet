@@ -167,7 +167,7 @@ test_that("build_network_inputs computes mean, median, counts, and z-score", {
 
   rs <- build_network_inputs(ego_df, de_df)$results_set
 
-  expect_named(rs, c("avg_log2FC", "median_log2FC", "n_up", "n_down", "zscore"))
+  expect_named(rs, c("avg_log2FC", "median_log2FC", "n_up", "n_down", "zscore", "go_id"))
   expect_equal(rs["mostly_up", "avg_log2FC"], mean(c(rep(0.6, 5), -4)))
   expect_lt(rs["mostly_up", "avg_log2FC"], 0)       # the mean is pulled negative
   expect_equal(rs["mostly_up", "median_log2FC"], 0.6)

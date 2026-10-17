@@ -83,52 +83,10 @@ write_cluster_wordclouds_patchwork <- function(
 
       if (nrow(sub_df) == 0) next
 
-      sub_df <- sub_df |>
-        dplyr::mutate(
-          go_term_clean = stringr::str_replace_all(.data$go_term, "_", " "),
-          go_term_clean = stringr::str_trim(.data$go_term_clean)
-        )
-
-      sub_df <- sub_df |>
-        dplyr::mutate(
-          term_weight = pmax(.data$degree, 1),
-          term_weight = if (use_logfc_weight) {
-            .data$term_weight * (1 + abs(.data$avg_log2FC))
-          } else {
-            .data$term_weight
-          }
-        )
-
-      phrase_freq <- sub_df |>
-        dplyr::group_by(.data$go_term_clean) |>
-        dplyr::summarise(freq = sum(.data$term_weight), .groups = "drop") |>
-        dplyr::arrange(dplyr::desc(.data$freq)) |>
-        dplyr::slice_head(n = max_terms)
-
-      if (!is.null(merge_similarity) && nrow(phrase_freq) > 1) {
-        tokens <- strsplit(tolower(phrase_freq$go_term_clean), "\\s+")
-        n <- length(tokens)
-        jdist <- matrix(0, n, n)
-        for (i in seq_len(n - 1)) {
-          for (j in (i + 1):n) {
-            inter <- length(intersect(tokens[[i]], tokens[[j]]))
-            union_val <- length(union(tokens[[i]], tokens[[j]]))
-            jdist[i, j] <- jdist[j, i] <- if (union_val == 0) 1 else 1 - inter / union_val
-          }
-        }
-        hc <- stats::hclust(stats::as.dist(jdist), method = "average")
-        hc$height <- cummax(hc$height)
-        phrase_freq$group <- stats::cutree(hc, h = merge_similarity)
-        phrase_freq <- phrase_freq |>
-          dplyr::group_by(.data$group) |>
-          dplyr::summarise(
-            go_term_clean = .data$go_term_clean[which.max(.data$freq)],
-            freq = sum(.data$freq),
-            .groups = "drop"
-          ) |>
-          dplyr::select(-"group") |>
-          dplyr::arrange(dplyr::desc(.data$freq))
-      }
+      phrase_freq <- .rank_cluster_phrases(
+        sub_df, max_terms = max_terms, use_logfc_weight = use_logfc_weight,
+        merge_similarity = merge_similarity
+      )
 
       if (nrow(phrase_freq) < min_terms) {
         cli::cli_alert_warning("Skipping {.val {celltype}} cluster {cluster_id} (too few phrases)")

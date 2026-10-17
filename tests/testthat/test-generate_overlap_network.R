@@ -37,7 +37,7 @@ test_that("generate_overlap_network returns expected list structure", {
   expect_named(result, c("network", "clustering", "overlap_matrix",
                           "go_term_df", "cluster_stats", "leiden_resolution",
                           "objective_function", "overlap_threshold", "seed",
-                          "term_genes", "plots"))
+                          "term_genes", "cluster_themes", "plots"))
 })
 
 test_that("generate_overlap_network produces igraph object", {

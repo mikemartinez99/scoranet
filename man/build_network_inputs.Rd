@@ -28,6 +28,8 @@ the term descriptions), computed from the DE genes in each term:
 single genes with extreme fold changes).}
 \item{n_up, n_down}{Number of the term's DE genes with positive and
 negative fold change.}
+\item{go_id}{GO ID of the term (\code{NA} if \code{ego} has no
+\code{ID} column).}
 \item{zscore}{Direction z-score,
 \eqn{(n_{up} - n_{down}) / \sqrt{n_{up} + n_{down}}}, as used by
 GOplot. Large positive values mean the term's genes are

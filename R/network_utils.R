@@ -44,6 +44,35 @@
 #'   \code{\link{generate_overlap_network}}: nodes with a direction z-score of
 #'   at least this value are called up, at most minus this value down, and
 #'   mixed otherwise. Default \code{1}.
+#' @param theme_label Character. Text used to label each cluster in the
+#'   themes plot:
+#'   \describe{
+#'     \item{\code{"ancestor"} (default)}{Up to \code{theme_max_ancestors}
+#'       higher-level GO terms that the cluster's terms fall under in the GO
+#'       hierarchy (via GO.db), with how many of the cluster's terms they
+#'       cover, e.g. \code{"cytokine production / response to cytokine
+#'       (22/39)"}. Each is chosen to cover many of the remaining terms while
+#'       staying specific. Falls back to the hub term when no
+#'       ancestor qualifies or the results have no GO IDs.}
+#'     \item{\code{"keywords"}}{The most distinctive words in the cluster's
+#'       term names.}
+#'     \item{\code{"phrase"}}{The top term name, as used by the wordclouds.}
+#'     \item{\code{"hub"}}{The cluster's most connected term.}
+#'   }
+#' @param theme_ancestor_min_share Numeric \code{(0, 1]}. Minimum share of a
+#'   cluster's terms an ancestor must cover to be used as a label. Default
+#'   \code{0.15}.
+#' @param theme_max_ancestors Integer. Maximum number of ancestors in one
+#'   cluster label. Default \code{2}.
+#' @param theme_ancestor_max_size Integer. GO terms with more descendants than
+#'   this are considered too generic to be a label (for reference: "cell
+#'   cycle" has about 800, "response to stress" about 1,300, "cellular
+#'   process" about 16,000). Default \code{1000}.
+#' @param theme_min_terms Integer. Clusters with fewer terms get a hull but no
+#'   callout label in the themes plot, to limit clutter. They are still listed
+#'   colour-coded in the cluster legend. Default \code{3}.
+#' @param theme_n_words Integer. Number of keywords per cluster label when
+#'   \code{theme_label = "keywords"}. Default \code{3}.
 #'
 #' @return A flat named list of network result lists, one per network that
 #'   could be built. Each element is the list returned by
@@ -70,7 +99,13 @@ run_comparison_networks <- function(
     objective_function = c("modularity", "CPM"),
     seed = 1234,
     split_direction = FALSE,
-    zscore_threshold = 1
+    zscore_threshold = 1,
+    theme_label = c("ancestor", "keywords", "phrase", "hub"),
+    theme_min_terms = 3,
+    theme_n_words = 3,
+    theme_ancestor_min_share = 0.15,
+    theme_ancestor_max_size = 1000,
+    theme_max_ancestors = 2
 ) {
 
   net_outdir <- paste0(base_outdir, comp_label, "/networks/")
@@ -122,7 +157,13 @@ run_comparison_networks <- function(
       outdir            = net_outdir,
       ident1            = idents[1],
       ident2            = idents[2],
-      zscore_threshold  = zscore_threshold
+      zscore_threshold  = zscore_threshold,
+      theme_label       = theme_label,
+      theme_min_terms   = theme_min_terms,
+      theme_n_words     = theme_n_words,
+      theme_ancestor_min_share = theme_ancestor_min_share,
+      theme_ancestor_max_size = theme_ancestor_max_size,
+      theme_max_ancestors = theme_max_ancestors
     )
   }
 
@@ -206,6 +247,8 @@ run_comparison_networks <- function(
 #'         single genes with extreme fold changes).}
 #'       \item{n_up, n_down}{Number of the term's DE genes with positive and
 #'         negative fold change.}
+#'       \item{go_id}{GO ID of the term (\code{NA} if \code{ego} has no
+#'         \code{ID} column).}
 #'       \item{zscore}{Direction z-score,
 #'         \eqn{(n_{up} - n_{down}) / \sqrt{n_{up} + n_{down}}}, as used by
 #'         GOplot. Large positive values mean the term's genes are
@@ -257,6 +300,8 @@ build_network_inputs <- function(ego, de_df) {
     )
   }))
   rownames(results_set) <- names(collection)
+  # GO IDs, used to group a cluster's terms under a shared GO ancestor
+  results_set$go_id <- if (!is.null(res$ID)) as.character(res$ID) else NA_character_
 
   list(collection = collection, results_set = results_set, de_genes = de_genes)
 }
@@ -311,6 +356,35 @@ build_network_inputs <- function(ego, de_df) {
 #' @param zscore_threshold Numeric. A node is called \code{"up"} when its
 #'   direction z-score is at least this value, \code{"down"} when it is at
 #'   most minus this value, and \code{"mixed"} otherwise. Default \code{1}.
+#' @param theme_label Character. Text used to label each cluster in the
+#'   themes plot:
+#'   \describe{
+#'     \item{\code{"ancestor"} (default)}{Up to \code{theme_max_ancestors}
+#'       higher-level GO terms that the cluster's terms fall under in the GO
+#'       hierarchy (via GO.db), with how many of the cluster's terms they
+#'       cover, e.g. \code{"cytokine production / response to cytokine
+#'       (22/39)"}. Each is chosen to cover many of the remaining terms while
+#'       staying specific. Falls back to the hub term when no
+#'       ancestor qualifies or the results have no GO IDs.}
+#'     \item{\code{"keywords"}}{The most distinctive words in the cluster's
+#'       term names.}
+#'     \item{\code{"phrase"}}{The top term name, as used by the wordclouds.}
+#'     \item{\code{"hub"}}{The cluster's most connected term.}
+#'   }
+#' @param theme_ancestor_min_share Numeric \code{(0, 1]}. Minimum share of a
+#'   cluster's terms an ancestor must cover to be used as a label. Default
+#'   \code{0.15}.
+#' @param theme_max_ancestors Integer. Maximum number of ancestors in one
+#'   cluster label. Default \code{2}.
+#' @param theme_ancestor_max_size Integer. GO terms with more descendants than
+#'   this are considered too generic to be a label (for reference: "cell
+#'   cycle" has about 800, "response to stress" about 1,300, "cellular
+#'   process" about 16,000). Default \code{1000}.
+#' @param theme_min_terms Integer. Clusters with fewer terms get a hull but no
+#'   callout label in the themes plot, to limit clutter. They are still listed
+#'   colour-coded in the cluster legend. Default \code{3}.
+#' @param theme_n_words Integer. Number of keywords per cluster label when
+#'   \code{theme_label = "keywords"}. Default \code{3}.
 #' @param ident1,ident2 Character. The numerator and denominator identities of
 #'   the comparison, used in the legend as \code{"Upregulated in <ident1>"}
 #'   and \code{"Upregulated in <ident2>"}. If \code{NULL} (default), they are
@@ -329,15 +403,22 @@ build_network_inputs <- function(ego, de_df) {
 #'   \item{go_term_df}{Data frame with columns \code{go_term},
 #'     \code{cluster}, \code{degree}, \code{regulation} (\code{"up"},
 #'     \code{"down"}, or \code{"mixed"}), \code{avg_log2FC} (mean),
-#'     \code{median_log2FC}, \code{n_up}, \code{n_down}, \code{zscore}, and
-#'     \code{leiden_resolution}. The direction columns are \code{NA} when
-#'     \code{results_set} has no z-score columns.}
+#'     \code{median_log2FC}, \code{n_up}, \code{n_down}, \code{zscore},
+#'     \code{go_id}, and \code{leiden_resolution}. The direction columns are
+#'     \code{NA} when \code{results_set} has no z-score columns, and
+#'     \code{go_id} is \code{NA} when it has no GO IDs.}
 #'   \item{cluster_stats}{Data frame with columns \code{cluster},
 #'     \code{avg_degree}, and \code{n_terms}.}
 #'   \item{leiden_resolution, objective_function, overlap_threshold, seed}{The
 #'     settings used.}
 #'   \item{term_genes}{Named list: for each node (GO term), the DE genes it
 #'     contains. Used by \code{\link{plot_driver_genes}}.}
+#'   \item{cluster_themes}{Data frame with one row per Leiden cluster:
+#'     \code{cluster}, \code{n_terms}; the shared GO ancestors
+#'     (\code{ancestor}, names joined by \code{" / "}; \code{ancestor_id},
+#'     IDs joined by \code{";"}; \code{ancestor_n_covered}, how many of the
+#'     cluster's terms fall under them; \code{NA} if none qualifies); and the
+#'     other candidate labels \code{keywords}, \code{phrase}, and \code{hub}.}
 #'   \item{plots}{A list of \code{ggplot} objects built with \pkg{ggraph}:
 #'     \code{plain} (nodes filled by direction: up, down, or mixed),
 #'     \code{leiden} (nodes filled by Leiden cluster, with the cluster legend
@@ -346,9 +427,11 @@ build_network_inputs <- function(ego, de_df) {
 #'     \code{leiden}, node shape shows direction (circle = up in
 #'     \code{ident1}, square = up in \code{ident2}, diamond = mixed). Edge
 #'     width shows Jaccard overlap. Cluster colours come from the 40-colour
-#'     dittoSeq palette. Elements are \code{NULL} if the network has no nodes;
-#'     \code{zscore} is also \code{NULL} when \code{results_set} has no
-#'     \code{zscore} column.}
+#'     dittoSeq palette. \code{themes} is the Leiden plot annotated with
+#'     cluster themes: a shaded hull around each cluster with a callout naming
+#'     its theme, and a layout that keeps each cluster together (so
+#'     node positions differ from the other plots). \code{zscore} is
+#'     \code{NULL} when \code{results_set} has no \code{zscore} column.}
 #' }
 #'
 #' @section Side effects:
@@ -363,6 +446,8 @@ build_network_inputs <- function(ego, de_df) {
 #'     network coloured by Leiden cluster membership.
 #'   \item \code{<file_stem>-zscore.png} -- \code{plots$zscore}: network
 #'     coloured by direction z-score.
+#'   \item \code{<file_stem>-themes.png} -- \code{plots$themes}: network
+#'     with labelled cluster-theme hulls.
 #' }
 #'
 #' @seealso \code{\link{build_network_inputs}},
@@ -389,10 +474,17 @@ generate_overlap_network <- function(
     file_stem = NULL,
     ident1 = NULL,
     ident2 = NULL,
-    zscore_threshold = 1
+    zscore_threshold = 1,
+    theme_label = c("ancestor", "keywords", "phrase", "hub"),
+    theme_min_terms = 3,
+    theme_n_words = 3,
+    theme_ancestor_min_share = 0.15,
+    theme_ancestor_max_size = 1000,
+    theme_max_ancestors = 2
 ) {
 
   objective_function <- match.arg(objective_function)
+  theme_label <- match.arg(theme_label)
 
   parts <- strsplit(collection_name, "_vs_")[[1]]
   if (is.null(ident1)) {
@@ -451,6 +543,11 @@ generate_overlap_network <- function(
   igraph::V(network)$n_up      <- .node_stat("n_up")
   igraph::V(network)$n_down    <- .node_stat("n_down")
   igraph::V(network)$zscore    <- z
+  igraph::V(network)$go_id     <- if ("go_id" %in% colnames(results_set)) {
+    as.character(results_set$go_id[idx])
+  } else {
+    rep(NA_character_, length(idx))
+  }
   igraph::V(network)$regulation <- if (all(is.na(z))) {
     ifelse(fc > 0, "up", "down")
   } else {
@@ -499,6 +596,7 @@ generate_overlap_network <- function(
     n_up       = igraph::V(network)$n_up,
     n_down     = igraph::V(network)$n_down,
     zscore     = igraph::V(network)$zscore,
+    go_id      = igraph::V(network)$go_id,
     leiden_resolution = leiden_resolution,
     stringsAsFactors = FALSE
   )
@@ -551,8 +649,14 @@ generate_overlap_network <- function(
   }
 
   lo <- .with_optional_seed(seed, igraph::layout_with_fr(network))
+  cluster_themes <- .cluster_themes(
+    go_term_df, n_words = theme_n_words,
+    ancestor_min_share = theme_ancestor_min_share,
+    ancestor_max_size = theme_ancestor_max_size,
+    max_ancestors = theme_max_ancestors
+  )
 
-  plots <- list(plain = NULL, leiden = NULL, zscore = NULL)
+  plots <- list(plain = NULL, leiden = NULL, zscore = NULL, themes = NULL)
   if (igraph::vcount(network) > 0) {
     plots$plain <- .network_plot(
       network, lo, reg_labels, fill_by = "regulation",
@@ -569,6 +673,12 @@ generate_overlap_network <- function(
         title = paste0(collection_name, " (direction z-score)")
       )
     }
+    plots$themes <- .themes_plot(
+      network, .grouped_layout(network, seed), reg_labels,
+      title = paste0(collection_name, " (cluster themes)"),
+      cluster_palette = cluster_palette, themes = cluster_themes,
+      label_by = theme_label, min_terms = theme_min_terms
+    )
   }
 
   if (!is.null(outdir) && !is.null(plots$plain)) {
@@ -580,6 +690,8 @@ generate_overlap_network <- function(
       .save_network_plot(plots$zscore, paste0(outdir, file_stem, "-zscore.png"),
                          width = 11, height = 10)
     }
+    .save_network_plot(plots$themes, paste0(outdir, file_stem, "-themes.png"),
+                       width = 15, height = 11)
   }
 
   if (isTRUE(plot_to_screen) && !is.null(plots$leiden)) {
@@ -597,6 +709,7 @@ generate_overlap_network <- function(
     overlap_threshold = overlap_threshold,
     seed             = seed,
     term_genes       = collection_sub[igraph::V(network)$name],
+    cluster_themes   = cluster_themes,
     plots            = plots
   )
 }

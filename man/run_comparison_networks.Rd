@@ -14,7 +14,13 @@ run_comparison_networks(
   objective_function = c("modularity", "CPM"),
   seed = 1234,
   split_direction = FALSE,
-  zscore_threshold = 1
+  zscore_threshold = 1,
+  theme_label = c("ancestor", "keywords", "phrase", "hub"),
+  theme_min_terms = 3,
+  theme_n_words = 3,
+  theme_ancestor_min_share = 0.15,
+  theme_ancestor_max_size = 1000,
+  theme_max_ancestors = 2
 )
 }
 \arguments{
@@ -64,6 +70,41 @@ structure of \code{go_list}; a mismatch is an error. Default \code{FALSE}.}
 \code{\link{generate_overlap_network}}: nodes with a direction z-score of
 at least this value are called up, at most minus this value down, and
 mixed otherwise. Default \code{1}.}
+
+\item{theme_label}{Character. Text used to label each cluster in the
+themes plot:
+\describe{
+\item{\code{"ancestor"} (default)}{Up to \code{theme_max_ancestors}
+higher-level GO terms that the cluster's terms fall under in the GO
+hierarchy (via GO.db), with how many of the cluster's terms they
+cover, e.g. \code{"cytokine production / response to cytokine
+      (22/39)"}. Each is chosen to cover many of the remaining terms while
+staying specific. Falls back to the hub term when no
+ancestor qualifies or the results have no GO IDs.}
+\item{\code{"keywords"}}{The most distinctive words in the cluster's
+term names.}
+\item{\code{"phrase"}}{The top term name, as used by the wordclouds.}
+\item{\code{"hub"}}{The cluster's most connected term.}
+}}
+
+\item{theme_min_terms}{Integer. Clusters with fewer terms get a hull but no
+callout label in the themes plot, to limit clutter. They are still listed
+colour-coded in the cluster legend. Default \code{3}.}
+
+\item{theme_n_words}{Integer. Number of keywords per cluster label when
+\code{theme_label = "keywords"}. Default \code{3}.}
+
+\item{theme_ancestor_min_share}{Numeric \code{(0, 1]}. Minimum share of a
+cluster's terms an ancestor must cover to be used as a label. Default
+\code{0.15}.}
+
+\item{theme_ancestor_max_size}{Integer. GO terms with more descendants than
+this are considered too generic to be a label (for reference: "cell
+cycle" has about 800, "response to stress" about 1,300, "cellular
+process" about 16,000). Default \code{1000}.}
+
+\item{theme_max_ancestors}{Integer. Maximum number of ancestors in one
+cluster label. Default \code{2}.}
 }
 \value{
 A flat named list of network result lists, one per network that
