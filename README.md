@@ -3,7 +3,10 @@
 **Single-cell differential expression, GO over-representation analysis, and pathway overlap networks.** Developed by Mike Martinez.
 
  ![Version](https://img.shields.io/badge/version-0.1.0-blue)
+ [![docs: pkgdown](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://mikemartinez99.github.io/scoranet/)
  ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
+
+📖 **Documentation and vignette:** [mikemartinez99.github.io/scoranet](https://mikemartinez99.github.io/scoranet/)
 
 > [!WARNING]
 > **🚧 In development:** functions and defaults may still change between versions.
@@ -18,7 +21,7 @@
 | Diagnostics for choosing network settings | `run_network_diagnostics()` |
 | Module interpretation | `write_cluster_wordclouds_patchwork()`, `write_cluster_results()` |
 
-See the [network analysis vignette](vignettes/network-analysis.Rmd) for a full walkthrough, and [DIAGNOSTICS.md](DIAGNOSTICS.md) for how to read the diagnostic figures.
+See the [interferon-beta PBMC vignette](https://mikemartinez99.github.io/scoranet/articles/ifnb-example.html) for a full walkthrough on real data, and [DIAGNOSTICS.md](DIAGNOSTICS.md) for how to read the diagnostic figures.
 
 ## Installation
 

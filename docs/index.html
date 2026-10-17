@@ -18,7 +18,7 @@
 <script src="deps/headroom-0.11.0/headroom.min.js"></script><script src="deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="deps/search-1.0.0/fuse.min.js"></script><script src="deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="pkgdown.js"></script><meta property="og:title" content="Single-Cell Gene Ontology Over-Representation Networks">
 <meta name="description" content="Utility functions for downstream single-cell RNA-seq analysis, including cluster-specific differential expression testing via Seurat, Gene Ontology over-representation analysis via clusterProfiler, Jaccard- overlap network construction with Leiden community detection via igraph, and word cloud visualization of network cluster themes via ggwordcloud. Designed for use with 10x Genomics Flex datasets processed through the Seurat pipeline.">
 <meta property="og:description" content="Utility functions for downstream single-cell RNA-seq analysis, including cluster-specific differential expression testing via Seurat, Gene Ontology over-representation analysis via clusterProfiler, Jaccard- overlap network construction with Leiden community detection via igraph, and word cloud visualization of network cluster themes via ggwordcloud. Designed for use with 10x Genomics Flex datasets processed through the Seurat pipeline.">
-<meta property="og:image" content="/logo.png">
+<meta property="og:image" content="https://mikemartinez99.github.io/scoranet/logo.png">
 </head>
 <body>
     <a href="#main" class="visually-hidden-focusable">Skip to contents</a>
@@ -42,7 +42,6 @@
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-articles" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Articles</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-articles">
 <li><a class="dropdown-item" href="articles/ifnb-example.html">Example: Interferon-Beta Stimulated PBMCs</a></li>
-    <li><a class="dropdown-item" href="articles/network-analysis.html">GO-ORA Network Analysis Workflow</a></li>
   </ul>
 </li>
       </ul>
@@ -50,6 +49,7 @@
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="search.json">
 </form></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/mikemartinez99/scoranet/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
       </ul>
 </div>
 
@@ -63,7 +63,8 @@
 </h1>
 </div>
 <p><strong>Single-cell differential expression, GO over-representation analysis, and pathway overlap networks.</strong> Developed by Mike Martinez.</p>
-<p><img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></p>
+<p><img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version"><a href="https://mikemartinez99.github.io/scoranet/"><img src="https://img.shields.io/badge/docs-pkgdown-blue.svg" alt="docs: pkgdown"></a> <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></p>
+<p>📖 <strong>Documentation and vignette:</strong> <a href="https://mikemartinez99.github.io/scoranet/">mikemartinez99.github.io/scoranet</a></p>
 <blockquote>
 <p>[!WARNING] <strong>🚧 In development:</strong> functions and defaults may still change between versions.</p>
 </blockquote>
@@ -108,7 +109,7 @@
 </tr>
 </tbody>
 </table>
-<p>See the <a href="vignettes/network-analysis.Rmd">network analysis vignette</a> for a full walkthrough, and <a href="DIAGNOSTICS.html">DIAGNOSTICS.md</a> for how to read the diagnostic figures.</p>
+<p>See the <a href="https://mikemartinez99.github.io/scoranet/articles/ifnb-example.html">interferon-beta PBMC vignette</a> for a full walkthrough on real data, and <a href="DIAGNOSTICS.html">DIAGNOSTICS.md</a> for how to read the diagnostic figures.</p>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -134,7 +135,15 @@
 <p>MIT</p>
 </div>
 </div>
-  </main><aside class="col-md-3"><div class="license">
+  </main><aside class="col-md-3"><div class="links">
+<h2 data-toc-skip>Links</h2>
+<ul class="list-unstyled">
+<li><a href="https://github.com/mikemartinez99/scoranet/" class="external-link">Browse source code</a></li>
+<li><a href="https://github.com/mikemartinez99/scoranet/issues" class="external-link">Report a bug</a></li>
+</ul>
+</div>
+
+<div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
 <li>

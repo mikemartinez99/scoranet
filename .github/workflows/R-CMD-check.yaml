@@ -43,6 +43,21 @@ jobs:
           extra-packages: any::rcmdcheck
           needs: check
 
+      # Bioconductor's prebuilt Windows/macOS binary of DOSE can lag behind
+      # clusterProfiler (e.g. DOSE 4.5.0 binary vs clusterProfiler 4.20.2),
+      # which breaks enrichGO() with "object 'geneID' is not exported by
+      # 'namespace:DOSE'". DOSE is pure R, so install the matching version
+      # from source.
+      - name: Install DOSE from source to match clusterProfiler
+        if: runner.os != 'Linux'
+        run: |
+          if (!requireNamespace("BiocManager", quietly = TRUE)) {
+            install.packages("BiocManager", repos = "https://cloud.r-project.org")
+          }
+          BiocManager::install("DOSE", type = "source", update = FALSE, ask = FALSE, force = TRUE)
+          packageVersion("DOSE")
+        shell: Rscript {0}
+
       - uses: r-lib/actions/check-r-package@v2
         with:
           upload-snapshots: true

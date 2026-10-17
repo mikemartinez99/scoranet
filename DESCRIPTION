@@ -15,6 +15,8 @@ Description: Utility functions for downstream single-cell RNA-seq analysis,
     Designed for use with 10x Genomics Flex datasets processed through the
     Seurat pipeline.
 License: MIT + file LICENSE
+URL: https://mikemartinez99.github.io/scoranet/, https://github.com/mikemartinez99/scoranet
+BugReports: https://github.com/mikemartinez99/scoranet/issues
 Encoding: UTF-8
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3

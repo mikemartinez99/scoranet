@@ -1,0 +1,410 @@
+---
+title: "Example: Interferon-Beta Stimulated PBMCs"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Example: Interferon-Beta Stimulated PBMCs}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+<!--
+  This vignette is precomputed. Edit ifnb-example.Rmd.orig, then re-knit from
+  the vignettes/ folder with:
+
+    knitr::knit("ifnb-example.Rmd.orig", output = "ifnb-example.Rmd")
+
+  Knitting needs SeuratData with ifnb.SeuratData, org.Hs.eg.db, and the
+  current version of scoranet installed.
+-->
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "figures/ifnb-",
+  fig.width = 8,
+  fig.height = 6,
+  dpi = 96,
+  out.width = "100%"
+)
+options(width = 90)
+```
+
+This vignette runs the full `scoranet` workflow on a real dataset and shows
+every kind of output it produces: console summaries, result tables, files
+written to disk, network plots, and diagnostic figures.
+
+The data are the interferon-beta stimulated PBMCs from Kang et al. (2018),
+*Nature Biotechnology* 36, 89-94, distributed as `ifnb` by the
+[SeuratData](https://github.com/satijalab/seurat-data) package. Interferon-beta
+triggers a strong, well-characterised antiviral response, which makes it a
+good test: the workflow should recover interferon signalling in every cell
+type.
+
+# Setup
+
+```{r libraries, message = FALSE, warning = FALSE}
+library(scoranet)
+library(Seurat)
+library(SeuratData)
+library(org.Hs.eg.db)
+```
+
+```{r data, message = FALSE, warning = FALSE}
+data("ifnb")
+ifnb <- UpdateSeuratObject(ifnb)
+ifnb <- NormalizeData(ifnb, verbose = FALSE)
+
+table(ifnb$seurat_annotations, ifnb$stim)[c("CD14 Mono", "CD4 Naive T", "B"), ]
+```
+
+We compare stimulated (`STIM`) against control (`CTRL`) cells in three cell
+types. All output files go to a temporary folder.
+
+```{r paths}
+cell_types <- c("CD14 Mono", "CD4 Naive T", "B")
+out_dir <- file.path(tempdir(), "ifnb_results")
+```
+
+# 1. Differential expression
+
+`run_cluster_de()` runs `Seurat::FindMarkers()` within each cell type and
+prints a short summary per cluster.
+
+```{r de}
+de_results <- run_cluster_de(
+  obj         = ifnb,
+  clusters    = cell_types,
+  cluster_col = "seurat_annotations",
+  ident_col   = "stim",
+  ident1      = "STIM",
+  ident2      = "CTRL"
+)
+```
+
+Each cell type returns two tables: `degs` (genes passing the adjusted p-value
+and fold-change cutoffs) and `tested` (every gene `FindMarkers` tested).
+
+```{r de-tables}
+names(de_results[["CD14 Mono"]])
+
+c(degs = nrow(de_results[["CD14 Mono"]]$degs),
+  tested = nrow(de_results[["CD14 Mono"]]$tested))
+```
+
+```{r de-top}
+top_degs <- de_results[["CD14 Mono"]]$degs
+top_degs <- top_degs[order(-abs(top_degs$avg_log2FC)), ]
+knitr::kable(
+  head(top_degs[, c("gene", "avg_log2FC", "pct.1", "pct.2", "p_val_adj", "res")], 10),
+  digits = 3, row.names = FALSE
+)
+```
+
+The strongest changes are classic interferon-stimulated genes and chemokines
+(*CCL8*, *CXCL10*, *ISG15*, and the *IFIT* family), exactly what
+interferon-beta should induce. CD14 monocytes respond most strongly: about half of their tested genes
+are DEGs.
+
+`write_de()` saves both tables per cell type:
+
+```{r de-write, message = FALSE}
+write_de(de_results, outSubDir = paste0(out_dir, "/DE/"))
+list.files(file.path(out_dir, "DE"))
+```
+
+# 2. GO over-representation analysis
+
+`run_go_ora()` runs `clusterProfiler::enrichGO()` on each cell type's DEGs.
+Here each cell type's tested genes are used as its background
+(`use_tested_universe = TRUE`), because genes that were never tested could not
+have been DEGs.
+
+```{r ora}
+go_results <- run_go_ora(
+  de_list             = de_results,
+  org_db              = org.Hs.eg.db,
+  use_tested_universe = TRUE,
+  ont                 = "BP",
+  outputDir           = paste0(out_dir, "/ORA/")
+)
+```
+
+Each element is a standard `clusterProfiler` `enrichResult`:
+
+```{r ora-table}
+go_cd14 <- as.data.frame(go_results[["CD14 Mono"]])
+knitr::kable(
+  head(go_cd14[, c("Description", "GeneRatio", "BgRatio", "p.adjust", "Count")], 10),
+  digits = 8, row.names = FALSE
+)
+```
+
+The top terms are antiviral and cytokine responses.
+
+A QC summary of how many gene sets were tested and retained is written for
+each run:
+
+```{r ora-qc}
+knitr::kable(read.csv(file.path(out_dir, "ORA", "GO_ORA_QC_summary.csv"), row.names = 1))
+```
+
+CD14 monocytes have the most DEGs but the fewest enriched terms. With the
+tested-gene background, half of their background genes are DEGs, so a term
+needs a very large share of DEGs to stand out. This is the tested-gene
+universe being appropriately conservative, not a lack of signal.
+
+`write_go()` saves the results, adding numeric gene-ratio columns:
+
+```{r ora-write, message = FALSE}
+write_go(go_results, outSubDir = paste0(out_dir, "/ORA/"))
+list.files(file.path(out_dir, "ORA"))
+```
+
+# 3. Choosing network settings
+
+Before building the final networks, the diagnostics show how the overlap
+threshold and Leiden resolution shape them. A first pass at the default
+settings is enough to run them (the console summary is hidden here).
+
+```{r networks-default, message = FALSE, fig.keep = "none"}
+net_default <- run_comparison_networks(
+  go_list     = go_results,
+  de_list     = de_results,
+  comp_label  = "STIM_vs_CTRL",
+  base_outdir = paste0(out_dir, "/default/")
+)
+
+dx_default <- run_network_diagnostics(net_default, de_results, go_results)
+```
+
+## Overlap threshold
+
+Two GO terms are connected when the Jaccard overlap of their DE genes is at
+least `overlap_threshold`; terms with no connection are dropped.
+
+```{r diag-threshold, fig.width = 9, fig.height = 8}
+dx_default$networks[["CD14 Mono"]]$overlap_threshold
+```
+
+Almost every pair of enriched terms shares at least one gene, and many share
+only a few. Raising the threshold from the default 0.1 to 0.2 roughly halves
+the number of edges while dropping only two terms, so we use 0.2. See
+`DIAGNOSTICS.md` in the package repository for a full guide to reading these
+figures.
+
+# 4. Pathway overlap networks
+
+We rebuild the networks with the chosen threshold.
+
+```{r networks, message = FALSE, fig.keep = "none"}
+net_results <- run_comparison_networks(
+  go_list           = go_results,
+  de_list           = de_results,
+  comp_label        = "STIM_vs_CTRL",
+  base_outdir       = paste0(out_dir, "/"),
+  overlap_threshold = 0.2,
+  leiden_resolution = 1,
+  theme_min_terms   = 2
+)
+names(net_results)
+```
+
+## Leiden resolution
+
+With the threshold settled, the resolution sweep checks the clustering:
+
+```{r diag-sweep, message = FALSE, fig.width = 7, fig.height = 8}
+dx <- run_network_diagnostics(net_results, de_results, go_results)
+dx$networks[["CD14 Mono"]]$leiden_sweep
+```
+
+A good resolution sits on a plateau where the cluster count is steady,
+modularity is high, and stability (agreement between random seeds) is close to
+1. Here the default resolution of 1 sits at the modularity peak with perfect
+stability, so we keep it. Modularity is modest because nearly every term in
+this network is part of one connected interferon response.
+
+Each network result holds the `igraph` object, tables of terms and clusters,
+the settings used, and four editable `ggplot` objects:
+
+```{r net-structure}
+net <- net_results[["CD14 Mono"]]
+names(net)
+names(net$plots)
+```
+
+## Direction
+
+Nodes are GO terms, coloured by whether their DE genes go up in `STIM` (red),
+up in `CTRL` (blue), or both (grey, "mixed"). Edge width shows overlap; node
+size shows the number of DE genes in the term. Almost the whole network is
+red: stimulation switches on the antiviral program.
+
+```{r plot-plain, fig.width = 9, fig.height = 8}
+net$plots$plain
+```
+
+The `zscore` plot shows how strongly each term leans one way, on a continuous
+scale. The darkest red terms sit at the centre of the antiviral response; the
+few blue terms, up in `CTRL`, belong to the small translation and
+proliferation clusters.
+
+```{r plot-zscore, fig.width = 9.5, fig.height = 8}
+net$plots$zscore
+```
+
+## Leiden clusters
+
+```{r plot-leiden, fig.width = 10, fig.height = 8}
+net$plots$leiden
+```
+
+## Cluster themes
+
+The `themes` plot outlines each Leiden cluster and labels it with the GO terms
+its members fall under in the GO hierarchy, with how many of the cluster's
+terms they cover. The two large clusters separate the direct antiviral
+response (viral process, response to type I interferon) from the broader
+immune and cytokine response; the small clusters capture translation
+(down in `STIM`) and cell proliferation.
+
+```{r plot-themes, fig.width = 11, fig.height = 8}
+net$plots$themes
+```
+
+The labels are also available as a table, along with alternative label styles
+(`keywords`, `phrase`, `hub`):
+
+```{r themes-table}
+knitr::kable(net$cluster_themes[, c("cluster", "n_terms", "ancestor",
+                                    "ancestor_n_covered", "hub")])
+```
+
+## Term-level results
+
+`go_term_df` lists every term in the network with its cluster and direction
+statistics:
+
+```{r go-term-df}
+knitr::kable(
+  head(net$go_term_df[order(-net$go_term_df$degree),
+                      c("go_term", "cluster", "degree", "regulation",
+                        "n_up", "n_down", "zscore", "median_log2FC")], 8),
+  digits = 2, row.names = FALSE
+)
+```
+
+# 5. Interpreting modules
+
+## Driver genes
+
+Which genes is each cluster built on?
+
+```{r diag-drivers, fig.width = 7, fig.height = 7}
+dx$networks[["CD14 Mono"]]$driver_genes
+```
+
+The antiviral cluster is built on the *OAS* and *IFITM* families, the
+cytokine cluster on *GBP5*, *CASP1* and *IL1B*, and the translation cluster on
+ribosomal protein genes that go down after stimulation.
+
+## Overview across cell types
+
+```{r diag-overview, fig.width = 11, fig.height = 3}
+dx$overview
+```
+
+CD14 monocytes have by far the most DEGs, split almost evenly between
+directions, while the T and B cells respond mostly upward.
+
+## Word clouds
+
+`write_cluster_wordclouds_patchwork()` saves a word cloud of term names for
+each cluster:
+
+```{r wordclouds, message = FALSE, warning = FALSE}
+write_cluster_wordclouds_patchwork(
+  net_list   = net_results["CD14 Mono"],
+  outputDir  = paste0(out_dir, "/"),
+  comparison = "STIM_vs_CTRL"
+)
+```
+
+```{r wordclouds-show, echo = FALSE, results = "hide"}
+# Copy the saved PNG next to the vignette so it can be shown here
+dir.create("figures", showWarnings = FALSE)
+file.copy(
+  file.path(out_dir, "STIM_vs_CTRL", "networks", "CD14_Mono_all_clusters_wordclouds.png"),
+  "figures/ifnb-wordclouds.png", overwrite = TRUE
+)
+```
+
+```{r wordclouds-include, echo = FALSE}
+knitr::include_graphics("figures/ifnb-wordclouds.png")
+```
+
+## Terms in one module
+
+`write_cluster_results()` returns every term in the same cluster as a term of
+interest. Here, the module containing the most connected term:
+
+```{r cluster-results, message = FALSE}
+top_term <- net$go_term_df$go_term[which.max(net$go_term_df$degree)]
+top_term
+
+module <- write_cluster_results(net, go_term = top_term, outdir = NULL)
+knitr::kable(head(module[, c("go_term", "cluster", "degree", "regulation")], 10),
+             row.names = FALSE)
+```
+
+# 6. Splitting by direction
+
+With `split_direction = TRUE`, ORA runs separately on up- and down-regulated
+genes, and a network is built for each direction. This keeps a smaller set of
+down-regulated genes from being drowned out by the up-regulated ones.
+
+```{r split, message = FALSE, fig.keep = "none"}
+go_split <- run_go_ora(
+  de_list             = de_results["CD14 Mono"],
+  org_db              = org.Hs.eg.db,
+  use_tested_universe = TRUE,
+  split_direction     = TRUE,
+  outputDir           = paste0(out_dir, "/ORA_split/")
+)
+
+net_split <- run_comparison_networks(
+  go_list           = go_split,
+  de_list           = de_results,
+  comp_label        = "STIM_vs_CTRL_split",
+  base_outdir       = paste0(out_dir, "/"),
+  overlap_threshold = 0.2,
+  split_direction   = TRUE
+)
+names(net_split)
+```
+
+```{r split-up, fig.width = 11, fig.height = 8}
+net_split[["CD14 Mono_up"]]$plots$themes
+```
+
+Built from the up-regulated genes alone, the CD14 monocyte response resolves
+into many distinct modules: type I interferon production, interleukin-1
+production, chemokine response and leukocyte chemotaxis, adaptive immune
+activation, and more. In the combined network these were merged into two
+large clusters.
+
+# 7. Files written
+
+Everything the workflow saved to disk:
+
+```{r files}
+files <- list.files(out_dir, recursive = TRUE)
+files[!grepl("^default/", files)]
+```
+
+# Session information
+
+```{r session}
+sessionInfo()
+```

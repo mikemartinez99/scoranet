@@ -3,3 +3,10 @@
 ^\.github$
 ^DIAGNOSTICS\.md$
 ^img$
+^vignettes/.*\.Rmd\.orig$
+^docs$
+^_pkgdown\.yml$
+^pkgdown$
+^test_outputs$
+^testing\.R$
+^R/ToDo\.md$
