@@ -1,5 +1,5 @@
-Package: GDSCtools
-Title: Genomic Data Science Utilities for the Genomic Data Science Core
+Package: scoranet
+Title: Single-Cell Gene Ontology Over-Representation Networks
 Version: 0.1.0
 Authors@R: c(
     person("Mike", "Martinez", email = "mike.j.martinez99@gmail.com",
@@ -24,6 +24,7 @@ Imports:
     clusterProfiler,
     dplyr,
     ggplot2,
+    ggraph,
     ggwordcloud,
     igraph,
     patchwork,

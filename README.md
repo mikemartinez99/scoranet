@@ -1,6 +1,6 @@
-# GDSCtools
+# scoranet
 
-**Dartmouth Genomic Data Science Core: General Utilities**
+**Single-cell differential expression, GO over-representation analysis, and pathway overlap networks.** Developed by the Dartmouth Genomic Data Science Core.
 
  ![Version](https://img.shields.io/badge/version-0.1.0-blue)
  [![pkgdown documentation](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://dartmouth-data-analytics-core.github.io/GDSCtools/index.html)
@@ -34,8 +34,6 @@ BiocManager::install(c("clusterProfiler", "org.Mm.eg.db"))
 
 ## Vignettes
 
-- [Loading CellRanger outputs as Seurat Objects](https://dartmouth-data-analytics-core.github.io/GDSCtools/articles/Loading-Data.html)  
-- [Basic Single Cell GEX Quality Control](https://dartmouth-data-analytics-core.github.io/GDSCtools/articles/single-cell-gex-qc.html)  
 - [Pathway Network Analysis](https://dartmouth-data-analytics-core.github.io/GDSCtools/articles/network-analysis.html)
 
 ## License

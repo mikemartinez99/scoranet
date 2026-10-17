@@ -68,11 +68,11 @@ write_cluster_wordclouds_patchwork <- function(
     df <- net_list[[celltype]]$go_term_df
 
     if (is.null(df) || nrow(df) == 0) {
-      message("Skipping ", celltype, " (no GO terms)")
+      cli::cli_alert_warning("Skipping {.val {celltype}} (no GO terms)")
       next
     }
 
-    celltype_safe <- gsub("[ /]", "_", celltype)
+    celltype_safe <- .safe_filename(celltype)
 
     plot_list <- list()
 
@@ -131,7 +131,7 @@ write_cluster_wordclouds_patchwork <- function(
       }
 
       if (nrow(phrase_freq) < min_terms) {
-        message("Skipping ", celltype, " cluster ", cluster_id, " (too few phrases)")
+        cli::cli_alert_warning("Skipping {.val {celltype}} cluster {cluster_id} (too few phrases)")
         next
       }
 

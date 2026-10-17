@@ -150,3 +150,29 @@ test_that("build_network_inputs captures all unique DE genes", {
 
   expect_equal(sort(result$de_genes), c("G1", "G2", "G3"))
 })
+
+test_that("build_network_inputs computes mean, median, counts, and z-score", {
+  ego_df <- data.frame(
+    Description = c("mostly_up", "balanced"),
+    p.adjust = c(0.01, 0.02),
+    geneID = c("G1/G2/G3/G4/G5/G6", "G1/G7"),
+    stringsAsFactors = FALSE
+  )
+  # mostly_up: five genes at +0.6 and one outlier at -4
+  de_df <- data.frame(
+    gene = paste0("G", 1:7),
+    avg_log2FC = c(rep(0.6, 5), -4, -0.6),
+    stringsAsFactors = FALSE
+  )
+
+  rs <- build_network_inputs(ego_df, de_df)$results_set
+
+  expect_named(rs, c("avg_log2FC", "median_log2FC", "n_up", "n_down", "zscore"))
+  expect_equal(rs["mostly_up", "avg_log2FC"], mean(c(rep(0.6, 5), -4)))
+  expect_lt(rs["mostly_up", "avg_log2FC"], 0)       # the mean is pulled negative
+  expect_equal(rs["mostly_up", "median_log2FC"], 0.6)
+  expect_equal(rs["mostly_up", "n_up"], 5)
+  expect_equal(rs["mostly_up", "n_down"], 1)
+  expect_equal(rs["mostly_up", "zscore"], (5 - 1) / sqrt(6))
+  expect_equal(rs["balanced", "zscore"], 0)
+})

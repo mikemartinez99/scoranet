@@ -13,13 +13,19 @@ generate_overlap_network(
   leiden_resolution = 0.03,
   outdir = NULL,
   plot_to_screen = TRUE,
-  file_stem = NULL
+  file_stem = NULL,
+  ident1 = NULL,
+  ident2 = NULL,
+  zscore_threshold = 1
 )
 }
 \arguments{
 \item{results_set}{Data frame with row names equal to GO term descriptions
-and at least one column \code{avg_log2FC} (mean fold-change across member
-genes).}
+and at least the column \code{avg_log2FC} (mean fold-change across member
+genes), as returned by \code{\link{build_network_inputs}}. If it also has
+\code{zscore}, \code{median_log2FC}, \code{n_up}, and \code{n_down}
+columns, node direction is called from the z-score (see
+\code{zscore_threshold}); otherwise from the sign of \code{avg_log2FC}.}
 
 \item{collection}{Named list of character vectors. Each element is a set of
 gene symbols belonging to one GO term. Names must match
@@ -44,14 +50,23 @@ which edges are set to zero. Default \code{0.1}.}
 no files are written. The directory is created if it does not exist.}
 
 \item{plot_to_screen}{Logical. If \code{TRUE} (default), the Leiden-
-clustered network is also drawn to the active graphics device (e.g.,
-the RStudio Plots pane).}
+clustered plot (\code{plots$leiden}) is also printed to the active
+graphics device (e.g., the RStudio Plots pane).}
 
 \item{file_stem}{Character string used as the filename prefix for all
 exported files. If \code{NULL} or empty, \code{collection_name} is used.}
+
+\item{ident1, ident2}{Character. The numerator and denominator identities of
+the comparison, used in the legend as \code{"Upregulated in <ident1>"}
+and \code{"Upregulated in <ident2>"}. If \code{NULL} (default), they are
+parsed from \code{collection_name} around \code{"_vs_"}.}
+
+\item{zscore_threshold}{Numeric. A node is called \code{"up"} when its
+direction z-score is at least this value, \code{"down"} when it is at
+most minus this value, and \code{"mixed"} otherwise. Default \code{1}.}
 }
 \value{
-A list with six elements:
+A list with seven elements:
 \describe{
 \item{network}{An \code{igraph} graph object with vertex attributes
 \code{fc}, \code{regulation}, \code{size}, \code{cluster},
@@ -61,11 +76,25 @@ A list with six elements:
 \item{overlap_matrix}{Square numeric matrix of pairwise Jaccard
 coefficients (before thresholding).}
 \item{go_term_df}{Data frame with columns \code{go_term},
-\code{cluster}, \code{degree}, \code{regulation}, \code{avg_log2FC},
-and \code{leiden_resolution}.}
+\code{cluster}, \code{degree}, \code{regulation} (\code{"up"},
+\code{"down"}, or \code{"mixed"}), \code{avg_log2FC} (mean),
+\code{median_log2FC}, \code{n_up}, \code{n_down}, \code{zscore}, and
+\code{leiden_resolution}. The direction columns are \code{NA} when
+\code{results_set} has no z-score columns.}
 \item{cluster_stats}{Data frame with columns \code{cluster},
 \code{avg_degree}, and \code{n_terms}.}
 \item{leiden_resolution}{The resolution value used.}
+\item{plots}{A list of \code{ggplot} objects built with \pkg{ggraph}:
+\code{plain} (nodes filled by direction: up, down, or mixed),
+\code{leiden} (nodes filled by Leiden cluster, with the cluster legend
+on the left), and \code{zscore} (nodes filled by a continuous
+blue-white-red gradient of the direction z-score). In \code{plain} and
+\code{leiden}, node shape shows direction (circle = up in
+\code{ident1}, square = up in \code{ident2}, diamond = mixed). Edge
+width shows Jaccard overlap. Cluster colours come from the 40-colour
+dittoSeq palette. Elements are \code{NULL} if the network has no nodes;
+\code{zscore} is also \code{NULL} when \code{results_set} has no
+\code{zscore} column.}
 }
 }
 \description{
@@ -83,10 +112,13 @@ When \code{outdir} is non-\code{NULL}, the following files are written:
 \itemize{
 \item \code{<file_stem>_network_summary.csv} -- node/edge/cluster counts.
 \item \code{<file_stem>-cluster-stats.csv} -- per-cluster average degree.
-\item \code{<file_stem>-plain.png} -- network coloured by regulation
-direction (red = up, blue = down).
-\item \code{<file_stem>-clustered-leiden.png} -- network coloured by
-Leiden cluster membership.
+\item \code{<file_stem>-plain.png} -- \code{plots$plain}: network
+coloured by direction (red = up in \code{ident1}, blue = up in
+\code{ident2}, grey = mixed).
+\item \code{<file_stem>-clustered-leiden.png} -- \code{plots$leiden}:
+network coloured by Leiden cluster membership.
+\item \code{<file_stem>-zscore.png} -- \code{plots$zscore}: network
+coloured by direction z-score.
 }
 }
 

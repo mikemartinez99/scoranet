@@ -20,7 +20,7 @@ knitr::opts_chunk$set(
 
 This vignette demonstrates a typical workflow for differential expression,
 GO over-representation analysis (GO-ORA), pathway overlap network generation,
-and pathway module interpretation using `GDSCtools`.
+and pathway module interpretation using `scoranet`.
 
 The workflow includes:
 
@@ -34,7 +34,7 @@ The workflow includes:
 # Load Packages
 
 ```{r eval = FALSE}
-library(GDSCtools)
+library(scoranet)
 library(org.Mm.eg.db)
 ```
 
@@ -64,14 +64,12 @@ de_results <- run_cluster_de(
 )
 ```
 
-Write differential expression results to disk.
+Write differential expression results to disk. This writes the DEGs and the full table of tested genes for each cluster.
 
 ```{r eval = FALSE}
-write_de_results(
+write_de(
   de_results,
-  outSubDir = "results/DE/",
-  type = "DE",
-  split_direction = FALSE
+  outSubDir = "results/DE/"
 )
 ```
 
@@ -99,11 +97,9 @@ go_results <- run_go_ora(
 Export GO enrichment results.
 
 ```{r eval = FALSE}
-write_de_results(
+write_go(
   go_results,
-  outSubDir = "results/GO/",
-  type = "GO",
-  split_direction = FALSE
+  outSubDir = "results/GO/"
 )
 ```
 

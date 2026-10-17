@@ -4,14 +4,17 @@
 #' builds a Jaccard-overlap network of enriched GO terms, applies Leiden
 #' community detection, and saves network plots and summary tables. Clusters
 #' that lack enrichment results or have fewer than two significant pathways
-#' are skipped with a message.
+#' are skipped with a message. With \code{split_direction = TRUE}, a separate
+#' network is built for the up- and down-regulated results of each cluster.
 #'
-#' @param go_list A named list of \code{enrichResult} objects (from
-#'   \code{clusterProfiler::enrichGO}), one per cell-type cluster. Names must
-#'   match the names in \code{de_list}.
-#' @param de_list A named list of differential-expression data frames, one per
-#'   cluster. Each data frame must contain at least the columns \code{gene}
-#'   (gene symbol) and \code{avg_log2FC}.
+#' @param go_list A named list of GO results from \code{\link{run_go_ora}}.
+#'   With \code{split_direction = FALSE}, each element is a single
+#'   \code{enrichResult}; with \code{split_direction = TRUE}, each element is
+#'   a list with \code{$up} and \code{$down} \code{enrichResult} objects.
+#'   Names must match the names in \code{de_list}.
+#' @param de_list The output of \code{\link{run_cluster_de}}: a named list
+#'   whose elements each contain a \code{$degs} data frame with at least the
+#'   columns \code{gene} (gene symbol) and \code{avg_log2FC}.
 #' @param comp_label Character string identifying the comparison (e.g.,
 #'   \code{"CD206_Car_vs_Bleo"}). Used to build output sub-directory paths and
 #'   as a prefix in plot titles.
@@ -23,10 +26,26 @@
 #' @param leiden_resolution Numeric. Resolution parameter passed to
 #'   \code{igraph::cluster_leiden}. Lower values produce fewer, larger
 #'   communities. Default \code{0.03}.
+#' @param split_direction Logical. Set to \code{TRUE} when \code{go_list} comes
+#'   from \code{run_go_ora(split_direction = TRUE)}. Each direction is then
+#'   built from its own results and only the DEGs in that direction
+#'   (\code{avg_log2FC > 0} for up, \code{< 0} for down). Must match the
+#'   structure of \code{go_list}; a mismatch is an error. Default \code{FALSE}.
+#' @param zscore_threshold Numeric. Passed to
+#'   \code{\link{generate_overlap_network}}: nodes with a direction z-score of
+#'   at least this value are called up, at most minus this value down, and
+#'   mixed otherwise. Default \code{1}.
 #'
-#' @return A named list of network result lists (one per cluster that produced
-#'   a valid network). Each element is the list returned by
-#'   \code{\link{generate_overlap_network}}.
+#' @return A flat named list of network result lists, one per network that
+#'   could be built. Each element is the list returned by
+#'   \code{\link{generate_overlap_network}}. Names are the cluster names (with
+#'   \code{"/"} replaced by \code{"_"}), plus a \code{"_up"} or \code{"_down"}
+#'   suffix when \code{split_direction = TRUE}.
+#'
+#' @section Output files:
+#' Files are written to \code{<base_outdir>/<comp_label>/networks/} with the
+#' file stem \code{<cluster>} (or \code{<cluster>_up} / \code{<cluster>_down}
+#' when split). See \code{\link{generate_overlap_network}} for the file list.
 #'
 #' @seealso \code{\link{build_network_inputs}},
 #'   \code{\link{generate_overlap_network}}
@@ -38,48 +57,109 @@ run_comparison_networks <- function(
     comp_label,
     base_outdir,
     overlap_threshold = 0.1,
-    leiden_resolution = 0.03
+    leiden_resolution = 0.03,
+    split_direction = FALSE,
+    zscore_threshold = 1
 ) {
 
   net_outdir <- paste0(base_outdir, comp_label, "/networks/")
   if (!dir.exists(net_outdir)) dir.create(net_outdir, recursive = TRUE)
 
-  results <- lapply(names(go_list), function(clust) {
+  .is_split <- function(x) {
+    is.list(x) && !is.data.frame(x) && any(c("up", "down") %in% names(x))
+  }
 
-    clust_raw  <- clust
-    clust_safe <- gsub("/", "_", clust_raw)
+  # Numerator / denominator identities, from the comparison column that
+  # run_cluster_de() adds ("<ident1>_vs_<ident2>").
+  .idents <- function(de_entry) {
+    for (df in list(de_entry$tested, de_entry$degs)) {
+      if (!is.null(df$comparison) && length(df$comparison) > 0) {
+        parts <- strsplit(df$comparison[1], "_vs_", fixed = TRUE)[[1]]
+        if (length(parts) == 2) return(parts)
+      }
+    }
+    NULL
+  }
 
-    ego   <- go_list[[clust_raw]]
-    de_df <- de_list[[clust_raw]]
+  .build <- function(ego, de_df, clust, direction = NULL, idents = NULL) {
+    label <- if (is.null(direction)) "" else paste0(" (", direction, ")")
+    file_stem <- .safe_filename(clust)
+    if (!is.null(direction)) file_stem <- paste0(file_stem, "_", direction)
 
     if (is.null(ego) || is.null(de_df) || nrow(de_df) == 0) {
-      message("Skipping network for ", clust_raw)
+      cli::cli_alert_warning("Skipping network for {.val {clust}}{label}")
       return(NULL)
     }
 
     inputs <- build_network_inputs(ego, de_df)
 
     if (is.null(inputs) || length(inputs$collection) < 2) {
-      message("Not enough pathways for: ", clust_raw)
+      cli::cli_alert_warning("Not enough pathways for {.val {clust}}{label}")
       return(NULL)
     }
-
-    clust_label <- paste0(comp_label, "_", gsub(" ", "_", clust_safe))
 
     generate_overlap_network(
       results_set       = inputs$results_set,
       collection        = inputs$collection,
       de_genes          = inputs$de_genes,
-      collection_name   = clust_label,
-      file_stem         = clust_safe,
+      collection_name   = paste0(comp_label, "_", file_stem),
+      file_stem         = file_stem,
       overlap_threshold = overlap_threshold,
       leiden_resolution = leiden_resolution,
-      outdir            = net_outdir
+      outdir            = net_outdir,
+      ident1            = idents[1],
+      ident2            = idents[2],
+      zscore_threshold  = zscore_threshold
     )
-  })
+  }
 
-  names(results) <- gsub("/", "_", names(go_list))
-  results <- results[!sapply(results, is.null)]
+  results <- list()
+
+  for (clust in names(go_list)) {
+
+    ego <- go_list[[clust]]
+    de_entry <- de_list[[clust]]
+
+    if (is.data.frame(de_entry)) {
+      cli::cli_abort(c(
+        "{.code de_list[[\"{clust}\"]]} is a data frame, not {.fn run_cluster_de} output.",
+        "i" = "Pass the list returned by {.fn run_cluster_de}, whose elements contain {.field degs}."
+      ))
+    }
+
+    if (!split_direction && .is_split(ego)) {
+      cli::cli_abort(c(
+        "{.code go_list[[\"{clust}\"]]} contains {.field up}/{.field down} results from {.code run_go_ora(split_direction = TRUE)}.",
+        "i" = "Use {.code run_comparison_networks(..., split_direction = TRUE)}."
+      ))
+    }
+    if (split_direction && !is.null(ego) && !.is_split(ego)) {
+      cli::cli_abort(c(
+        "{.arg split_direction = TRUE} needs {.code go_list[[\"{clust}\"]]} to be a list with {.field up} and {.field down} results.",
+        "i" = "{.fn run_go_ora} returns one combined result per cluster unless run with {.code split_direction = TRUE}."
+      ))
+    }
+
+    degs <- de_entry$degs
+    idents <- .idents(de_entry)
+    clust_key <- gsub("/", "_", clust)
+
+    if (!split_direction) {
+      res <- .build(ego, degs, clust, idents = idents)
+      if (!is.null(res)) results[[clust_key]] <- res
+      next
+    }
+
+    for (direction in c("up", "down")) {
+      dir_degs <- if (is.null(degs)) NULL else if (direction == "up") {
+        degs[degs$avg_log2FC > 0, , drop = FALSE]
+      } else {
+        degs[degs$avg_log2FC < 0, , drop = FALSE]
+      }
+      res <- .build(ego[[direction]], dir_degs, clust, direction, idents)
+      if (!is.null(res)) results[[paste0(clust_key, "_", direction)]] <- res
+    }
+  }
 
   return(results)
 }
@@ -90,7 +170,7 @@ run_comparison_networks <- function(
 #' \code{enrichResult} object and pairs them with fold-change information from
 #' a differential-expression table. The output is a list containing:
 #' (1) a named list of gene-set members (\code{collection}), (2) a data frame
-#' of mean log2 fold-changes per pathway (\code{results_set}), and (3) the
+#' of per-pathway direction statistics (\code{results_set}), and (3) the
 #' unique set of DE genes (\code{de_genes}). These three components are the
 #' required inputs for \code{\link{generate_overlap_network}}.
 #'
@@ -105,16 +185,27 @@ run_comparison_networks <- function(
 #' \describe{
 #'   \item{collection}{Named list of character vectors; each element contains
 #'     the gene symbols associated with one GO term.}
-#'   \item{results_set}{Data frame with one row per GO term and a single
-#'     column \code{avg_log2FC} giving the mean fold-change of DE genes in
-#'     that term's gene set.}
+#'   \item{results_set}{Data frame with one row per GO term (row names are
+#'     the term descriptions), computed from the DE genes in each term:
+#'     \describe{
+#'       \item{avg_log2FC}{Mean log2 fold change.}
+#'       \item{median_log2FC}{Median log2 fold change (less sensitive to
+#'         single genes with extreme fold changes).}
+#'       \item{n_up, n_down}{Number of the term's DE genes with positive and
+#'         negative fold change.}
+#'       \item{zscore}{Direction z-score,
+#'         \eqn{(n_{up} - n_{down}) / \sqrt{n_{up} + n_{down}}}, as used by
+#'         GOplot. Large positive values mean the term's genes are
+#'         consistently up; values near 0 mean mixed.}
+#'     }
+#'     All values are 0 for a term with no DE genes.}
 #'   \item{de_genes}{Character vector of unique DE gene symbols.}
 #' }
 #' Returns \code{NULL} if no significant terms pass filtering.
 #'
 #' @seealso \code{\link{generate_overlap_network}}
 #'
-#' @importFrom stats setNames
+#' @importFrom stats setNames median
 #'
 #' @export
 build_network_inputs <- function(ego, de_df) {
@@ -139,16 +230,20 @@ build_network_inputs <- function(ego, de_df) {
   de_genes <- unique(de_df$gene)
   fc_lookup <- stats::setNames(de_df$avg_log2FC, de_df$gene)
 
-  pathway_fc <- sapply(collection, function(genes) {
-    in_de <- intersect(genes, names(fc_lookup))
-    if (length(in_de) == 0) return(0)
-    mean(fc_lookup[in_de])
-  })
-
-  results_set <- data.frame(
-    avg_log2FC = pathway_fc,
-    row.names  = names(collection)
-  )
+  results_set <- do.call(rbind, lapply(collection, function(genes) {
+    fcs <- fc_lookup[intersect(genes, names(fc_lookup))]
+    n_up <- sum(fcs > 0)
+    n_down <- sum(fcs < 0)
+    n <- n_up + n_down
+    data.frame(
+      avg_log2FC    = if (length(fcs) > 0) mean(fcs) else 0,
+      median_log2FC = if (length(fcs) > 0) stats::median(fcs) else 0,
+      n_up          = n_up,
+      n_down        = n_down,
+      zscore        = if (n > 0) (n_up - n_down) / sqrt(n) else 0
+    )
+  }))
+  rownames(results_set) <- names(collection)
 
   list(collection = collection, results_set = results_set, de_genes = de_genes)
 }
@@ -164,8 +259,11 @@ build_network_inputs <- function(ego, de_df) {
 #' cluster-level statistics.
 #'
 #' @param results_set Data frame with row names equal to GO term descriptions
-#'   and at least one column \code{avg_log2FC} (mean fold-change across member
-#'   genes).
+#'   and at least the column \code{avg_log2FC} (mean fold-change across member
+#'   genes), as returned by \code{\link{build_network_inputs}}. If it also has
+#'   \code{zscore}, \code{median_log2FC}, \code{n_up}, and \code{n_down}
+#'   columns, node direction is called from the z-score (see
+#'   \code{zscore_threshold}); otherwise from the sign of \code{avg_log2FC}.
 #' @param collection Named list of character vectors. Each element is a set of
 #'   gene symbols belonging to one GO term. Names must match
 #'   \code{rownames(results_set)}.
@@ -183,12 +281,19 @@ build_network_inputs <- function(ego, de_df) {
 #' @param outdir Character path to the output directory. If \code{NULL},
 #'   no files are written. The directory is created if it does not exist.
 #' @param plot_to_screen Logical. If \code{TRUE} (default), the Leiden-
-#'   clustered network is also drawn to the active graphics device (e.g.,
-#'   the RStudio Plots pane).
+#'   clustered plot (\code{plots$leiden}) is also printed to the active
+#'   graphics device (e.g., the RStudio Plots pane).
 #' @param file_stem Character string used as the filename prefix for all
 #'   exported files. If \code{NULL} or empty, \code{collection_name} is used.
+#' @param zscore_threshold Numeric. A node is called \code{"up"} when its
+#'   direction z-score is at least this value, \code{"down"} when it is at
+#'   most minus this value, and \code{"mixed"} otherwise. Default \code{1}.
+#' @param ident1,ident2 Character. The numerator and denominator identities of
+#'   the comparison, used in the legend as \code{"Upregulated in <ident1>"}
+#'   and \code{"Upregulated in <ident2>"}. If \code{NULL} (default), they are
+#'   parsed from \code{collection_name} around \code{"_vs_"}.
 #'
-#' @return A list with six elements:
+#' @return A list with seven elements:
 #' \describe{
 #'   \item{network}{An \code{igraph} graph object with vertex attributes
 #'     \code{fc}, \code{regulation}, \code{size}, \code{cluster},
@@ -198,11 +303,25 @@ build_network_inputs <- function(ego, de_df) {
 #'   \item{overlap_matrix}{Square numeric matrix of pairwise Jaccard
 #'     coefficients (before thresholding).}
 #'   \item{go_term_df}{Data frame with columns \code{go_term},
-#'     \code{cluster}, \code{degree}, \code{regulation}, \code{avg_log2FC},
-#'     and \code{leiden_resolution}.}
+#'     \code{cluster}, \code{degree}, \code{regulation} (\code{"up"},
+#'     \code{"down"}, or \code{"mixed"}), \code{avg_log2FC} (mean),
+#'     \code{median_log2FC}, \code{n_up}, \code{n_down}, \code{zscore}, and
+#'     \code{leiden_resolution}. The direction columns are \code{NA} when
+#'     \code{results_set} has no z-score columns.}
 #'   \item{cluster_stats}{Data frame with columns \code{cluster},
 #'     \code{avg_degree}, and \code{n_terms}.}
 #'   \item{leiden_resolution}{The resolution value used.}
+#'   \item{plots}{A list of \code{ggplot} objects built with \pkg{ggraph}:
+#'     \code{plain} (nodes filled by direction: up, down, or mixed),
+#'     \code{leiden} (nodes filled by Leiden cluster, with the cluster legend
+#'     on the left), and \code{zscore} (nodes filled by a continuous
+#'     blue-white-red gradient of the direction z-score). In \code{plain} and
+#'     \code{leiden}, node shape shows direction (circle = up in
+#'     \code{ident1}, square = up in \code{ident2}, diamond = mixed). Edge
+#'     width shows Jaccard overlap. Cluster colours come from the 40-colour
+#'     dittoSeq palette. Elements are \code{NULL} if the network has no nodes;
+#'     \code{zscore} is also \code{NULL} when \code{results_set} has no
+#'     \code{zscore} column.}
 #' }
 #'
 #' @section Side effects:
@@ -210,10 +329,13 @@ build_network_inputs <- function(ego, de_df) {
 #' \itemize{
 #'   \item \code{<file_stem>_network_summary.csv} -- node/edge/cluster counts.
 #'   \item \code{<file_stem>-cluster-stats.csv} -- per-cluster average degree.
-#'   \item \code{<file_stem>-plain.png} -- network coloured by regulation
-#'     direction (red = up, blue = down).
-#'   \item \code{<file_stem>-clustered-leiden.png} -- network coloured by
-#'     Leiden cluster membership.
+#'   \item \code{<file_stem>-plain.png} -- \code{plots$plain}: network
+#'     coloured by direction (red = up in \code{ident1}, blue = up in
+#'     \code{ident2}, grey = mixed).
+#'   \item \code{<file_stem>-clustered-leiden.png} -- \code{plots$leiden}:
+#'     network coloured by Leiden cluster membership.
+#'   \item \code{<file_stem>-zscore.png} -- \code{plots$zscore}: network
+#'     coloured by direction z-score.
 #' }
 #'
 #' @seealso \code{\link{build_network_inputs}},
@@ -223,8 +345,7 @@ build_network_inputs <- function(ego, de_df) {
 #'   membership degree delete_vertices vcount ecount layout_with_fr
 #' @importFrom stats aggregate
 #' @importFrom utils write.csv
-#' @importFrom grDevices png dev.off
-#' @importFrom graphics plot legend
+#' @importFrom ggplot2 .data
 #'
 #' @export
 generate_overlap_network <- function(
@@ -236,8 +357,20 @@ generate_overlap_network <- function(
     leiden_resolution = 0.03,
     outdir = NULL,
     plot_to_screen = TRUE,
-    file_stem = NULL
+    file_stem = NULL,
+    ident1 = NULL,
+    ident2 = NULL,
+    zscore_threshold = 1
 ) {
+
+  parts <- strsplit(collection_name, "_vs_")[[1]]
+  if (is.null(ident1)) {
+    ident1 <- if (length(parts) >= 1) gsub("_", " ", parts[1]) else "ident1"
+  }
+  if (is.null(ident2)) {
+    ident2 <- if (length(parts) >= 2) gsub("_", " ", parts[2]) else "ident2"
+  }
+  reg_labels <- c(paste0("Upregulated in ", ident1), paste0("Upregulated in ", ident2), "Mixed")
 
   rownames(results_set) <- gsub("-", "_", rownames(results_set))
   de_genes <- unique(gsub("-", "_", de_genes))
@@ -276,9 +409,22 @@ generate_overlap_network <- function(
   )
   network <- igraph::simplify(network, remove.loops = TRUE, remove.multiple = TRUE)
 
-  fc <- results_set$avg_log2FC[match(igraph::V(network)$name, rownames(results_set))]
-  igraph::V(network)$fc <- fc
-  igraph::V(network)$regulation <- ifelse(fc > 0, "up", "down")
+  idx <- match(igraph::V(network)$name, rownames(results_set))
+  .node_stat <- function(col) {
+    if (col %in% colnames(results_set)) results_set[[col]][idx] else rep(NA_real_, length(idx))
+  }
+  fc <- results_set$avg_log2FC[idx]
+  z  <- .node_stat("zscore")
+  igraph::V(network)$fc        <- fc
+  igraph::V(network)$median_fc <- .node_stat("median_log2FC")
+  igraph::V(network)$n_up      <- .node_stat("n_up")
+  igraph::V(network)$n_down    <- .node_stat("n_down")
+  igraph::V(network)$zscore    <- z
+  igraph::V(network)$regulation <- if (all(is.na(z))) {
+    ifelse(fc > 0, "up", "down")
+  } else {
+    ifelse(z >= zscore_threshold, "up", ifelse(z <= -zscore_threshold, "down", "mixed"))
+  }
   igraph::V(network)$size <- log(sapply(collection_sub[igraph::V(network)$name], length)) * 2
 
   isolates <- igraph::degree(network) == 0
@@ -295,15 +441,12 @@ generate_overlap_network <- function(
   mem <- igraph::membership(ceb)
   igraph::V(network)$cluster <- as.integer(mem)
 
-  distinct_colors <- c(
-    "#E31A1C", "#1F78B4", "#33A02C", "#FF7F00",
-    "#6A3D9A", "#E6AB02", "#66C2A5", "#E7298A",
-    "#1B9E77", "#A6761D", "#666666", "#D95F02"
-  )
   n_clusters <- length(unique(mem))
-  cluster_palette <- rep_len(distinct_colors, n_clusters)
+  cluster_palette <- rep_len(.ditto_colors, n_clusters)
   igraph::V(network)$color <- cluster_palette[mem]
-  igraph::V(network)$shape <- ifelse(igraph::V(network)$regulation == "up", "circle", "square")
+  igraph::V(network)$shape <- c(up = "circle", down = "square", mixed = "rectangle")[
+    igraph::V(network)$regulation
+  ]
 
   node_degrees <- igraph::degree(network)
   go_term_df <- data.frame(
@@ -312,6 +455,10 @@ generate_overlap_network <- function(
     degree     = node_degrees,
     regulation = igraph::V(network)$regulation,
     avg_log2FC = igraph::V(network)$fc,
+    median_log2FC = igraph::V(network)$median_fc,
+    n_up       = igraph::V(network)$n_up,
+    n_down     = igraph::V(network)$n_down,
+    zscore     = igraph::V(network)$zscore,
     leiden_resolution = leiden_resolution,
     stringsAsFactors = FALSE
   )
@@ -320,19 +467,21 @@ generate_overlap_network <- function(
   colnames(cluster_stats) <- c("cluster", "avg_degree")
   cluster_stats$n_terms <- as.integer(table(go_term_df$cluster))
 
-  message("\n===== Network Summary: ", collection_name, " =====")
-  message("  Nodes:              ", igraph::vcount(network))
-  message("  Edges:              ", igraph::ecount(network))
-  message("  Clusters:           ", n_clusters)
-  message("  Leiden resolution:  ", leiden_resolution)
-  message("  Overlap threshold:  ", overlap_threshold)
-  message("\n  Average degree per cluster:")
+  cli::cli_h2("Network Summary: {collection_name}")
+  cli::cli_dl(c(
+    "Nodes"             = igraph::vcount(network),
+    "Edges"             = igraph::ecount(network),
+    "Clusters"          = n_clusters,
+    "Leiden resolution" = leiden_resolution,
+    "Overlap threshold" = overlap_threshold
+  ))
+  cli::cli_h3("Average degree per cluster")
   for (i in seq_len(nrow(cluster_stats))) {
-    message("    Cluster ", cluster_stats$cluster[i],
-            ": avg_degree = ", round(cluster_stats$avg_degree[i], 2),
-            " (", cluster_stats$n_terms[i], " terms)")
+    cli::cli_bullets(c(
+      "*" = "Cluster {cluster_stats$cluster[i]}: avg_degree = {round(cluster_stats$avg_degree[i], 2)} ({cluster_stats$n_terms[i]} terms)"
+    ))
   }
-  message("==========================================\n")
+  cli::cli_rule()
 
   if (!is.null(outdir)) {
     if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
@@ -348,104 +497,53 @@ generate_overlap_network <- function(
     )
     summary_file <- paste0(outdir, file_stem, "_network_summary.csv")
     utils::write.csv(summary_df, file = summary_file, row.names = FALSE)
-    message("Saved network summary CSV: ",
-            normalizePath(summary_file, winslash = "/", mustWork = FALSE),
-            " (exists=", file.exists(summary_file), ")")
+    cli::cli_alert_success(
+      "Saved network summary CSV: {.file {normalizePath(summary_file, winslash = '/', mustWork = FALSE)}} (exists={file.exists(summary_file)})"
+    )
 
     cluster_stats_out <- cluster_stats[, c("cluster", "avg_degree", "n_terms")]
     cluster_stats_file <- paste0(outdir, file_stem, "-cluster-stats.csv")
     utils::write.csv(cluster_stats_out, file = cluster_stats_file, row.names = FALSE)
-    message("Saved cluster stats CSV: ",
-            normalizePath(cluster_stats_file, winslash = "/", mustWork = FALSE),
-            " (exists=", file.exists(cluster_stats_file), ")")
-
-    set.seed(1234)
-    lo <- igraph::layout_with_fr(network)
-    ppi <- 300
-
-    parts  <- strsplit(collection_name, "_vs_")[[1]]
-    ident1 <- if (length(parts) >= 1) gsub("_", " ", parts[1]) else "ident1"
-    ident2 <- if (length(parts) >= 2) gsub("_", " ", parts[2]) else "ident2"
-
-    up_down_cols <- ifelse(igraph::V(network)$regulation == "up", "#E67A6E", "#278EEA")
-
-    out_png_plain <- paste0(outdir, file_stem, "-plain.png")
-    grDevices::png(filename = out_png_plain,
-                   width = 10 * ppi, height = 10 * ppi, res = ppi)
-    graphics::plot(
-      network,
-      layout             = lo,
-      vertex.color       = up_down_cols,
-      vertex.label       = NA,
-      vertex.frame.color = "#555555",
-      main               = paste0(collection_name, " (pathway overlap)")
+    cli::cli_alert_success(
+      "Saved cluster stats CSV: {.file {normalizePath(cluster_stats_file, winslash = '/', mustWork = FALSE)}} (exists={file.exists(cluster_stats_file)})"
     )
-    graphics::legend("bottomleft",
-                     legend = c(paste0("Up in ", ident1), paste0("Down in ", ident2)),
-                     pch = c(16, 15), col = "black", pt.cex = 2, bty = "n", cex = 0.7)
-    grDevices::dev.off()
-
-    if (identical(Sys.info()[["sysname"]], "Darwin")) {
-      try(system2("chflags", c("nohidden", out_png_plain)), silent = TRUE)
-    }
-    message("Saved network PNG: ", normalizePath(out_png_plain, winslash = "/", mustWork = TRUE),
-            " (exists=", file.exists(out_png_plain), ")")
-
-    tryCatch({
-      cluster_ids <- sort(unique(mem))
-      out_png <- paste0(outdir, file_stem, "-clustered-leiden.png")
-
-      grDevices::png(filename = out_png,
-                     width = 12.5 * ppi, height = 10 * ppi, res = ppi)
-      graphics::plot(
-        network,
-        layout             = lo,
-        vertex.label       = NA,
-        vertex.frame.color = "#333333",
-        main               = paste0(collection_name, " (Leiden)")
-      )
-      graphics::legend("bottomleft",
-                       legend = c(paste0("Up (", ident1, ")"), paste0("Down (", ident2, ")")),
-                       pch = c(16, 15), col = "black", pt.cex = 2, bty = "n", cex = 0.7)
-      graphics::legend("bottomright",
-                       legend = paste("Cluster", cluster_ids),
-                       pch = 21,
-                       pt.bg = cluster_palette[match(cluster_ids, sort(unique(cluster_ids)))],
-                       col = "black", pt.cex = 2, bty = "n", cex = 0.7)
-      grDevices::dev.off()
-
-      if (identical(Sys.info()[["sysname"]], "Darwin")) {
-        try(system2("chflags", c("nohidden", out_png)), silent = TRUE)
-      }
-      message("Saved network PNG: ", normalizePath(out_png, winslash = "/", mustWork = FALSE),
-              " (exists=", file.exists(out_png), ")")
-    }, error = function(e) {
-      try(grDevices::dev.off(), silent = TRUE)
-      message("FAILED to save Leiden PNG for ", collection_name, ": ", conditionMessage(e))
-    })
   }
 
-  if (isTRUE(plot_to_screen)) {
-    set.seed(1234)
-    lo <- igraph::layout_with_fr(network)
-    parts  <- strsplit(collection_name, "_vs_")[[1]]
-    ident1 <- if (length(parts) >= 1) gsub("_", " ", parts[1]) else "ident1"
-    ident2 <- if (length(parts) >= 2) gsub("_", " ", parts[2]) else "ident2"
-    cluster_ids <- sort(unique(mem))
-    graphics::plot(
-      network,
-      layout             = lo,
-      vertex.label       = NA,
-      vertex.frame.color = "#333333",
-      main               = paste0(collection_name, " (Leiden)")
+  set.seed(1234)
+  lo <- igraph::layout_with_fr(network)
+
+  plots <- list(plain = NULL, leiden = NULL, zscore = NULL)
+  if (igraph::vcount(network) > 0) {
+    plots$plain <- .network_plot(
+      network, lo, reg_labels, fill_by = "regulation",
+      title = paste0(collection_name, " (pathway overlap)")
     )
-    graphics::legend("bottomleft",
-                     legend = c(paste0("Up (", ident1, ")"), paste0("Down (", ident2, ")")),
-                     pch = c(16, 15), col = "black", pt.cex = 1.5, bty = "n", cex = 0.7)
-    graphics::legend("bottomright",
-                     legend = paste("Cluster", cluster_ids),
-                     pch = 21, pt.bg = cluster_palette[cluster_ids],
-                     col = "black", pt.cex = 1.5, bty = "n", cex = 0.7)
+    plots$leiden <- .network_plot(
+      network, lo, reg_labels, fill_by = "cluster",
+      title = paste0(collection_name, " (Leiden)"),
+      cluster_palette = cluster_palette
+    )
+    if (!all(is.na(igraph::V(network)$zscore))) {
+      plots$zscore <- .network_plot(
+        network, lo, reg_labels, fill_by = "zscore",
+        title = paste0(collection_name, " (direction z-score)")
+      )
+    }
+  }
+
+  if (!is.null(outdir) && !is.null(plots$plain)) {
+    .save_network_plot(plots$plain, paste0(outdir, file_stem, "-plain.png"),
+                       width = 10, height = 10)
+    .save_network_plot(plots$leiden, paste0(outdir, file_stem, "-clustered-leiden.png"),
+                       width = 12.5, height = 10)
+    if (!is.null(plots$zscore)) {
+      .save_network_plot(plots$zscore, paste0(outdir, file_stem, "-zscore.png"),
+                         width = 11, height = 10)
+    }
+  }
+
+  if (isTRUE(plot_to_screen) && !is.null(plots$leiden)) {
+    print(plots$leiden)
   }
 
   list(
@@ -454,8 +552,109 @@ generate_overlap_network <- function(
     overlap_matrix   = mat,
     go_term_df       = go_term_df,
     cluster_stats    = cluster_stats,
-    leiden_resolution = leiden_resolution
+    leiden_resolution = leiden_resolution,
+    plots            = plots
   )
+}
+
+# Build a ggraph plot of a GO-term overlap network. Edge width shows Jaccard
+# overlap. `fill_by` chooses the node fill:
+#   "regulation": up / down / mixed colours; shape also shows direction.
+#   "cluster":    Leiden cluster (legend on the left); shape shows direction.
+#   "zscore":     continuous blue-white-red gradient of the direction z-score.
+.network_plot <- function(network, layout, reg_labels, title,
+                          fill_by = c("regulation", "cluster", "zscore"),
+                          cluster_palette = NULL) {
+  fill_by <- match.arg(fill_by)
+  reg_breaks <- c("up", "down", "mixed")
+  reg_shapes <- c(up = 21, down = 22, mixed = 23)
+  reg_names  <- stats::setNames(reg_labels, reg_breaks)
+
+  p <- ggraph::ggraph(network, layout = "manual", x = layout[, 1], y = layout[, 2]) +
+    ggraph::geom_edge_link(ggplot2::aes(edge_width = .data$weight),
+                           colour = "grey70", alpha = 0.6) +
+    ggraph::scale_edge_width(range = c(0.2, 1.5), guide = "none")
+
+  if (fill_by == "regulation") {
+    p <- p +
+      ggraph::geom_node_point(
+        ggplot2::aes(fill = .data$regulation, shape = .data$regulation,
+                     size = .data$size),
+        colour = "grey25", stroke = 0.4
+      ) +
+      ggplot2::scale_fill_manual(
+        name = NULL, breaks = reg_breaks, labels = reg_names,
+        values = c(up = "#E67A6E", down = "#278EEA", mixed = "grey75")
+      ) +
+      ggplot2::scale_shape_manual(
+        name = NULL, values = reg_shapes, breaks = reg_breaks, labels = reg_names,
+        guide = ggplot2::guide_legend(override.aes = list(size = 4))
+      )
+  } else if (fill_by == "cluster") {
+    p <- p +
+      ggraph::geom_node_point(
+        ggplot2::aes(fill = factor(.data$cluster), shape = .data$regulation,
+                     size = .data$size),
+        colour = "grey25", stroke = 0.4
+      ) +
+      ggplot2::scale_fill_manual(
+        name = "Cluster",
+        values = stats::setNames(cluster_palette, seq_along(cluster_palette)),
+        labels = function(x) paste("Cluster", x),
+        guide = ggplot2::guide_legend(
+          position = "left",
+          override.aes = list(shape = 21, size = 4)
+        )
+      ) +
+      # Fill shows cluster here, so the direction key gets a neutral fill
+      ggplot2::scale_shape_manual(
+        name = NULL, values = reg_shapes, breaks = reg_breaks, labels = reg_names,
+        guide = ggplot2::guide_legend(override.aes = list(size = 4, fill = "grey60"))
+      )
+  } else {
+    z_max <- max(abs(igraph::V(network)$zscore), na.rm = TRUE)
+    if (!is.finite(z_max) || z_max == 0) z_max <- 1
+    p <- p +
+      ggraph::geom_node_point(
+        ggplot2::aes(fill = .data$zscore, size = .data$size),
+        shape = 21, colour = "grey25", stroke = 0.4
+      ) +
+      ggplot2::scale_fill_gradient2(
+        name = paste0("Direction z-score\n(+ = ", reg_labels[1],
+                      ",\n- = ", reg_labels[2], ")"),
+        low = "#278EEA", mid = "white", high = "#E67A6E", midpoint = 0,
+        limits = c(-z_max, z_max),
+        guide = ggplot2::guide_colourbar(
+          theme = ggplot2::theme(legend.key.height = ggplot2::unit(12, "lines"))
+        )
+      )
+  }
+
+  p +
+    ggplot2::scale_size_continuous(range = c(2, 6), guide = "none") +
+    ggplot2::labs(title = title) +
+    ggplot2::theme_void() +
+    ggplot2::theme(
+      plot.title = ggplot2::element_text(hjust = 0.5, face = "bold"),
+      plot.background = ggplot2::element_rect(fill = "white", colour = NA),
+      legend.position = "right",
+      plot.margin = ggplot2::margin(10, 10, 10, 10)
+    )
+}
+
+# Save a network plot as a PNG and report the result with cli.
+.save_network_plot <- function(plot, file, width, height) {
+  tryCatch({
+    ggplot2::ggsave(file, plot, width = width, height = height, dpi = 300, bg = "white")
+    if (identical(Sys.info()[["sysname"]], "Darwin")) {
+      try(system2("chflags", c("nohidden", file)), silent = TRUE)
+    }
+    cli::cli_alert_success(
+      "Saved network PNG: {.file {normalizePath(file, winslash = '/', mustWork = FALSE)}} (exists={file.exists(file)})"
+    )
+  }, error = function(e) {
+    cli::cli_alert_danger("Failed to save {.file {file}}: {conditionMessage(e)}")
+  })
 }
 
 #' Extract and Export GO Terms from a Specific Leiden Cluster
@@ -476,9 +675,9 @@ generate_overlap_network <- function(
 #'   \code{NULL}, defaults to \code{"cluster-<id>"}.
 #'
 #' @return A data frame containing all GO terms in the same Leiden cluster as
-#'   \code{go_term}, with columns \code{go_term}, \code{cluster},
-#'   \code{degree}, \code{regulation}, \code{avg_log2FC}, and
-#'   \code{leiden_resolution}. Returns \code{NULL} with a warning if the
+#'   \code{go_term}, with the same columns as \code{go_term_df} in
+#'   \code{\link{generate_overlap_network}} (including \code{regulation},
+#'   \code{avg_log2FC}, \code{median_log2FC}, and \code{zscore}). Returns \code{NULL} with a warning if the
 #'   requested term is not found in the network.
 #'
 #' @seealso \code{\link{generate_overlap_network}}

@@ -20,9 +20,20 @@ A list with three elements:
 \describe{
 \item{collection}{Named list of character vectors; each element contains
 the gene symbols associated with one GO term.}
-\item{results_set}{Data frame with one row per GO term and a single
-column \code{avg_log2FC} giving the mean fold-change of DE genes in
-that term's gene set.}
+\item{results_set}{Data frame with one row per GO term (row names are
+the term descriptions), computed from the DE genes in each term:
+\describe{
+\item{avg_log2FC}{Mean log2 fold change.}
+\item{median_log2FC}{Median log2 fold change (less sensitive to
+single genes with extreme fold changes).}
+\item{n_up, n_down}{Number of the term's DE genes with positive and
+negative fold change.}
+\item{zscore}{Direction z-score,
+\eqn{(n_{up} - n_{down}) / \sqrt{n_{up} + n_{down}}}, as used by
+GOplot. Large positive values mean the term's genes are
+consistently up; values near 0 mean mixed.}
+}
+All values are 0 for a term with no DE genes.}
 \item{de_genes}{Character vector of unique DE gene symbols.}
 }
 Returns \code{NULL} if no significant terms pass filtering.
@@ -32,7 +43,7 @@ Extracts significant GO terms (adjusted p-value < 0.05) from an
 \code{enrichResult} object and pairs them with fold-change information from
 a differential-expression table. The output is a list containing:
 (1) a named list of gene-set members (\code{collection}), (2) a data frame
-of mean log2 fold-changes per pathway (\code{results_set}), and (3) the
+of per-pathway direction statistics (\code{results_set}), and (3) the
 unique set of DE genes (\code{de_genes}). These three components are the
 required inputs for \code{\link{generate_overlap_network}}.
 }
