@@ -28,7 +28,7 @@
 
     <a class="navbar-brand me-2" href="index.html">scoranet</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">0.1.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -62,8 +62,9 @@
 <img src="logo.png" class="logo" alt=""><h1 id="scoranet">scoranet<a class="anchor" aria-label="anchor" href="#scoranet"></a>
 </h1>
 </div>
-<p><strong>Single-cell differential expression, GO over-representation analysis, and pathway overlap networks</strong></p>
-<p><!-- badges: start --> <img src="https://img.shields.io/badge/status-in%20development-orange" alt="status"><img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version"><a href="https://mikemartinez99.github.io/scoranet/"><img src="https://img.shields.io/badge/docs-pkgdown-blue.svg" alt="docs: pkgdown"></a> <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"><a href="https://github.com/mikemartinez99/scoranet/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/mikemartinez99/scoranet/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/mikemartinez99/scoranet" class="external-link"><img src="https://codecov.io/gh/mikemartinez99/scoranet/graph/badge.svg" alt="Codecov test coverage"></a></p>
+<p><strong>Single-Cell Over-Representation Analysis NETworks</strong></p>
+<p><em>Clean, interpretable alternatives to traditional functional enrichment results at the single-cell cluster level.</em></p>
+<p><!-- badges: start --> <img src="https://img.shields.io/badge/status-in%20development-orange" alt="status"><img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version"><a href="https://mikemartinez99.github.io/scoranet/"><img src="https://img.shields.io/badge/docs-pkgdown-blue.svg" alt="docs: pkgdown"></a> <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"><a href="https://github.com/mikemartinez99/scoranet/actions/workflows/R-CMD-check.yaml" class="external-link"><img src="https://github.com/mikemartinez99/scoranet/actions/workflows/R-CMD-check.yaml/badge.svg" alt="R-CMD-check"></a> <a href="https://app.codecov.io/gh/mikemartinez99/scoranet" class="external-link"><img src="https://codecov.io/gh/mikemartinez99/scoranet/graph/badge.svg" alt="Codecov test coverage"></a></p>
 <p><!-- badges: end --></p>
 <blockquote>
 <p>[!WARNING] <strong>🚧 In development:</strong> functions and defaults may still change between versions.</p>
@@ -71,63 +72,6 @@
 <hr>
 <div class="float">
 <img src="reference/figures/overview.png" alt="scoranet example outputs: direction z-score network, cluster-theme network, Leiden resolution sweep, and driver genes"><div class="figcaption">scoranet example outputs: direction z-score network, cluster-theme network, Leiden resolution sweep, and driver genes</div>
-</div>
-<div class="section level2">
-<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
-</h2>
-<p>Single-cell experiments often produce hundreds of differentially expressed genes per cell type, and gene ontology (GO) over-representation analysis on those genes can return dozens of overlapping, redundant terms. <strong>scoranet</strong> turns that list into a map of biological programs.</p>
-<p>For each cell type, scoranet:</p>
-<ol style="list-style-type: decimal">
-<li>
-<strong>Tests for differential expression</strong> between two conditions within each cluster (Seurat 4 and 5).</li>
-<li>
-<strong>Runs GO over-representation analysis</strong> on the DEGs, optionally using only the genes that were actually tested as the background, and optionally splitting up- and down-regulated genes.</li>
-<li>
-<strong>Builds a pathway overlap network</strong>, connecting GO terms that share DE genes, and groups them into modules with Leiden clustering.</li>
-<li>
-<strong>Names each module</strong> using higher-level terms from the GO hierarchy, and colours terms by whether their genes go up, down, or both.</li>
-<li>
-<strong>Checks the settings</strong> with built-in diagnostics for the overlap threshold, Leiden resolution, and the genes driving each module.</li>
-</ol>
-<p>All plots are returned as editable <code>ggplot2</code> objects, and every table is written to disk.</p>
-<table class="table">
-<colgroup>
-<col width="50%">
-<col width="50%">
-</colgroup>
-<thead><tr>
-<th>Step</th>
-<th>Functions</th>
-</tr></thead>
-<tbody>
-<tr>
-<td>Differential expression per cell-type cluster</td>
-<td>
-<code><a href="reference/run_cluster_de.html">run_cluster_de()</a></code>, <code><a href="reference/write_de.html">write_de()</a></code>
-</td>
-</tr>
-<tr>
-<td>GO over-representation analysis</td>
-<td>
-<code><a href="reference/run_go_ora.html">run_go_ora()</a></code>, <code><a href="reference/write_go.html">write_go()</a></code>
-</td>
-</tr>
-<tr>
-<td>Pathway overlap networks, Leiden modules, and cluster themes</td>
-<td><code><a href="reference/run_comparison_networks.html">run_comparison_networks()</a></code></td>
-</tr>
-<tr>
-<td>Diagnostics for choosing network settings</td>
-<td><code><a href="reference/run_network_diagnostics.html">run_network_diagnostics()</a></code></td>
-</tr>
-<tr>
-<td>Module interpretation</td>
-<td>
-<code><a href="reference/write_cluster_wordclouds_patchwork.html">write_cluster_wordclouds_patchwork()</a></code>, <code><a href="reference/write_cluster_results.html">write_cluster_results()</a></code>
-</td>
-</tr>
-</tbody>
-</table>
 </div>
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
@@ -145,7 +89,24 @@
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://devtools.r-lib.org/" class="external-link">devtools</a></span><span class="op">)</span></span>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"mikemartinez99/scoranet"</span><span class="op">)</span></span>
 <span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">scoranet</span><span class="op">)</span></span></code></pre></div>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://mikemartinez99.github.io/scoranet/">scoranet</a></span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
+</h2>
+<p>Single-cell experiments often produce hundreds of differentially expressed genes per cell type, and gene ontology (GO) over-representation analysis on those genes can return dozens of overlapping, redundant terms. <strong>scoranet</strong> (Single-Cell Over-Representation Analysis NETworks) turns that list into a map of biological programs to help make sense of your results!</p>
+<blockquote>
+<p>[!IMPORTANT] scoranet is compatible with Seurat v4 and v5!</p>
+</blockquote>
+<p>For each cell type, scoranet:</p>
+<ol style="list-style-type: decimal">
+<li><p><strong>Tests for differential expression</strong> between two conditions within each cluster</p></li>
+<li><p><strong>Runs GO over-representation analysis</strong> on the DEGs, optionally using only the genes that were actually tested as the background, and optionally splitting up- and down-regulated genes.</p></li>
+<li><p><strong>Builds a pathway overlap network</strong>, connecting GO terms that share DE genes via Jaccard similarity index, and groups them into modules with Leiden clustering.</p></li>
+<li><p><strong>Names each module</strong> using higher-level terms from the GO hierarchy, and colours terms by whether their genes go up, down, or both.</p></li>
+<li><p><strong>Checks the settings</strong> with built-in diagnostics for the overlap threshold, Leiden resolution, and the genes driving each module to help you fine-tune your figures and biological interpretation.</p></li>
+</ol>
+<p>All plots are returned as editable <code>ggplot2</code> objects, and every table is written to disk.</p>
 <p><strong>Dependencies</strong><br><strong>CRAN:</strong> Seurat, cli, dplyr, ggforce, ggplot2, ggraph, ggwordcloud, igraph (&gt;= 2.1.0), patchwork, scales, stringr, withr<br><strong>Bioconductor:</strong> clusterProfiler, GO.db, AnnotationDbi, and an organism annotation package (org.Mm.eg.db for mouse or org.Hs.eg.db for human)</p>
 </div>
 <div class="section level2">
@@ -157,7 +118,12 @@
 <div class="section level2">
 <h2 id="change-log">Change-log<a class="anchor" aria-label="anchor" href="#change-log"></a>
 </h2>
-<p><strong><img src="https://img.shields.io/badge/version-0.1.0-blue" alt="Version"></strong> <strong><img src="https://img.shields.io/badge/Initial-grey" alt="Release"></strong> <em>October 17th, 2026: “The network update”</em><br> - Renamed from <strong>GDSCtools</strong> to <strong>scoranet</strong> and focused the package on the DE → ORA → network workflow<br> - <strong>run_cluster_de</strong> returns DEGs and all tested genes per cluster, with explicit Seurat <strong>FindMarkers</strong> pre-filters and Seurat 5 support<br> - <strong>run_go_ora</strong> supports tested-gene universes, up/down split analysis, and optional term simplification<br> - <strong>run_comparison_networks</strong> builds seeded Leiden networks (modularity objective) with z-score direction calls<br> - Added <strong>ggraph</strong> network plots: direction, Leiden clusters, z-score, and <strong>cluster themes</strong> named by the GO hierarchy<br> - Added <strong>diagnostics</strong>: Leiden resolution sweep, overlap threshold, driver genes, and comparison overview<br> - Added <strong>write_de</strong> and <strong>write_go</strong> (replacing write_de_results)<br> - Added <strong>unit tests</strong> and the <strong>interferon-beta PBMC vignette</strong><br></p>
+<p><strong><img src="https://img.shields.io/badge/version-1.0.0-blue" alt="Version"></strong> <strong><img src="https://img.shields.io/badge/Major-red" alt="Release"></strong> <em>October 17th, 2026: “The network update”</em><br> - Renamed from <strong>GDSCtools</strong> to <strong>scoranet</strong> and focused the package on the DE → ORA → network workflow<br> - <strong>run_cluster_de</strong> returns DEGs and all tested genes per cluster, with explicit Seurat <strong>FindMarkers</strong> pre-filters and Seurat 5 support<br> - <strong>run_go_ora</strong> supports tested-gene universes, up/down split analysis, and optional term simplification<br> - <strong>run_comparison_networks</strong> builds seeded Leiden networks (modularity objective) with z-score direction calls<br> - Added <strong>ggraph</strong> network plots: direction, Leiden clusters, z-score, and <strong>cluster themes</strong> named by the GO hierarchy<br> - Added <strong>diagnostics</strong>: Leiden resolution sweep, overlap threshold, driver genes, and comparison overview<br> - Added <strong>write_de</strong> and <strong>write_go</strong> (replacing write_de_results)<br> - Added <strong>unit tests</strong> and the <strong>interferon-beta PBMC vignette</strong><br></p>
+</div>
+<div class="section level2">
+<h2 id="ai-use-disclosure">AI Use Disclosure<a class="anchor" aria-label="anchor" href="#ai-use-disclosure"></a>
+</h2>
+<p>Parts of this package’s code, tests, and documentation were developed with the assistance of <a href="https://www.anthropic.com/claude" class="external-link">Claude</a> (Anthropic), an AI assistant. All AI-assisted work was reviewed, tested, and edited by the author, who takes full responsibility for the package.</p>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>

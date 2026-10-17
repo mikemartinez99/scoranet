@@ -6,7 +6,7 @@
 
  <!-- badges: start -->
  ![status](https://img.shields.io/badge/status-in%20development-orange)
- ![Version](https://img.shields.io/badge/version-0.1.0-blue)
+ ![Version](https://img.shields.io/badge/version-1.0.0-blue)
  [![docs: pkgdown](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://mikemartinez99.github.io/scoranet/)
  ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
  [![R-CMD-check](https://github.com/mikemartinez99/scoranet/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/mikemartinez99/scoranet/actions/workflows/R-CMD-check.yaml)
@@ -79,7 +79,7 @@ For a guide to reading the diagnostic figures, see [DIAGNOSTICS.md](DIAGNOSTICS.
 
 ## Change-log
 
-**![Version](https://img.shields.io/badge/version-0.1.0-blue)** **![Release](https://img.shields.io/badge/Initial-grey)**
+**![Version](https://img.shields.io/badge/version-1.0.0-blue)** **![Release](https://img.shields.io/badge/Major-red)**
 *October 17th, 2026: "The network update"*<br>
   - Renamed from **GDSCtools** to **scoranet** and focused the package on the DE → ORA → network workflow<br>
   - **run_cluster_de** returns DEGs and all tested genes per cluster, with explicit Seurat **FindMarkers** pre-filters and Seurat 5 support<br>
@@ -89,6 +89,10 @@ For a guide to reading the diagnostic figures, see [DIAGNOSTICS.md](DIAGNOSTICS.
   - Added **diagnostics**: Leiden resolution sweep, overlap threshold, driver genes, and comparison overview<br>
   - Added **write_de** and **write_go** (replacing write_de_results)<br>
   - Added **unit tests** and the **interferon-beta PBMC vignette**<br>
+
+## AI Use Disclosure
+
+Parts of this package's code, tests, and documentation were developed with the assistance of [Claude](https://www.anthropic.com/claude) (Anthropic), an AI assistant. All AI-assisted work was reviewed, tested, and edited by the author, who takes full responsibility for the package.
 
 
 ## Citation

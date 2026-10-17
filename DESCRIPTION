@@ -1,6 +1,6 @@
 Package: scoranet
 Title: Single-Cell Gene Ontology Over-Representation Networks
-Version: 0.1.0
+Version: 1.0.0
 Authors@R: c(
     person("Mike", "Martinez", email = "mike.j.martinez99@gmail.com",
            role = c("aut", "cre")),
