@@ -125,7 +125,10 @@ network is built for the up- and down-regulated results of each cluster.
 
 Files are written to \code{<base_outdir>/<comp_label>/networks/} with the
 file stem \code{<cluster>} (or \code{<cluster>_up} / \code{<cluster>_down}
-when split). See \code{\link{generate_overlap_network}} for the file list.
+when split), including \code{<stem>-cluster-membership.csv} (which GO
+terms belong to which Leiden cluster, with their DE genes) and
+\code{<stem>-cluster-themes.csv} (one row per cluster with its labels).
+See \code{\link{generate_overlap_network}} for the full file list.
 }
 
 \seealso{

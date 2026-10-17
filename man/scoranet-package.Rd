@@ -6,7 +6,18 @@
 \alias{scoranet-package}
 \title{scoranet: Single-Cell Gene Ontology Over-Representation Networks}
 \description{
+\if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
+
 Utility functions for downstream single-cell RNA-seq analysis, including cluster-specific differential expression testing via Seurat, Gene Ontology over-representation analysis via clusterProfiler, Jaccard- overlap network construction with Leiden community detection via igraph, and word cloud visualization of network cluster themes via ggwordcloud. Designed for use with 10x Genomics Flex datasets processed through the Seurat pipeline.
+}
+\seealso{
+Useful links:
+\itemize{
+  \item \url{https://mikemartinez99.github.io/scoranet/}
+  \item \url{https://github.com/mikemartinez99/scoranet}
+  \item Report bugs at \url{https://github.com/mikemartinez99/scoranet/issues}
+}
+
 }
 \author{
 \strong{Maintainer}: Mike Martinez \email{mike.j.martinez99@gmail.com}

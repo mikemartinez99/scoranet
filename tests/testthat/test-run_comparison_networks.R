@@ -44,6 +44,15 @@ test_that("run_comparison_networks builds one network per cluster by default", {
   expect_s3_class(res[["Fib A_1"]]$plots$zscore, "ggplot")
   expect_true(file.exists(paste0(outdir, "A_vs_B/networks/Fib_A_1-zscore.png")))
 
+  membership <- read.csv(paste0(outdir, "A_vs_B/networks/Fib_A_1-cluster-membership.csv"))
+  expect_true(all(c("go_term", "cluster", "regulation", "zscore", "genes") %in% names(membership)))
+  expect_equal(nrow(membership), nrow(res[["Fib A_1"]]$go_term_df))
+  expect_false(is.unsorted(membership$cluster))
+  expect_true(all(nzchar(membership$genes)))
+
+  themes <- read.csv(paste0(outdir, "A_vs_B/networks/Fib_A_1-cluster-themes.csv"))
+  expect_equal(nrow(themes), length(unique(membership$cluster)))
+
   unlink(outdir, recursive = TRUE)
 })
 

@@ -284,7 +284,9 @@ knitr::kable(net$cluster_themes[, c("cluster", "n_terms", "ancestor",
 ## Term-level results
 
 `go_term_df` lists every term in the network with its cluster and direction
-statistics:
+statistics. It is also saved, with each term's DE genes, as
+`<cell type>-cluster-membership.csv`, and the cluster labels as
+`<cell type>-cluster-themes.csv`:
 
 ```{r go-term-df}
 knitr::kable(

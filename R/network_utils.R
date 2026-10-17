@@ -83,7 +83,10 @@
 #' @section Output files:
 #' Files are written to \code{<base_outdir>/<comp_label>/networks/} with the
 #' file stem \code{<cluster>} (or \code{<cluster>_up} / \code{<cluster>_down}
-#' when split). See \code{\link{generate_overlap_network}} for the file list.
+#' when split), including \code{<stem>-cluster-membership.csv} (which GO
+#' terms belong to which Leiden cluster, with their DE genes) and
+#' \code{<stem>-cluster-themes.csv} (one row per cluster with its labels).
+#' See \code{\link{generate_overlap_network}} for the full file list.
 #'
 #' @seealso \code{\link{build_network_inputs}},
 #'   \code{\link{generate_overlap_network}}
@@ -439,6 +442,12 @@ build_network_inputs <- function(ego, de_df) {
 #' \itemize{
 #'   \item \code{<file_stem>_network_summary.csv} -- node/edge/cluster counts.
 #'   \item \code{<file_stem>-cluster-stats.csv} -- per-cluster average degree.
+#'   \item \code{<file_stem>-cluster-membership.csv} -- every GO term in the
+#'     network with its Leiden cluster: the columns of \code{go_term_df} plus
+#'     \code{genes}, the term's DE genes separated by \code{"/"}. Sorted by
+#'     cluster, then by degree.
+#'   \item \code{<file_stem>-cluster-themes.csv} -- one row per cluster with
+#'     its size and candidate labels (\code{cluster_themes}).
 #'   \item \code{<file_stem>-plain.png} -- \code{plots$plain}: network
 #'     coloured by direction (red = up in \code{ident1}, blue = up in
 #'     \code{ident2}, grey = mixed).
@@ -622,6 +631,14 @@ generate_overlap_network <- function(
   }
   cli::cli_rule()
 
+  cluster_themes <- .cluster_themes(
+    go_term_df, n_words = theme_n_words,
+    ancestor_min_share = theme_ancestor_min_share,
+    ancestor_max_size = theme_ancestor_max_size,
+    max_ancestors = theme_max_ancestors
+  )
+  term_genes <- collection_sub[igraph::V(network)$name]
+
   if (!is.null(outdir)) {
     if (!dir.exists(outdir)) dir.create(outdir, recursive = TRUE)
 
@@ -646,15 +663,26 @@ generate_overlap_network <- function(
     cli::cli_alert_success(
       "Saved cluster stats CSV: {.file {normalizePath(cluster_stats_file, winslash = '/', mustWork = FALSE)}} (exists={file.exists(cluster_stats_file)})"
     )
+
+    # Which GO terms belong to which cluster, with each term's DE genes
+    membership <- go_term_df
+    membership$genes <- vapply(term_genes[membership$go_term],
+                               function(g) paste(g, collapse = "/"), character(1))
+    membership <- membership[order(membership$cluster, -membership$degree), ]
+    membership_file <- paste0(outdir, file_stem, "-cluster-membership.csv")
+    utils::write.csv(membership, file = membership_file, row.names = FALSE)
+    cli::cli_alert_success(
+      "Saved cluster membership CSV: {.file {normalizePath(membership_file, winslash = '/', mustWork = FALSE)}}"
+    )
+
+    themes_file <- paste0(outdir, file_stem, "-cluster-themes.csv")
+    utils::write.csv(cluster_themes, file = themes_file, row.names = FALSE)
+    cli::cli_alert_success(
+      "Saved cluster themes CSV: {.file {normalizePath(themes_file, winslash = '/', mustWork = FALSE)}}"
+    )
   }
 
   lo <- .with_optional_seed(seed, igraph::layout_with_fr(network))
-  cluster_themes <- .cluster_themes(
-    go_term_df, n_words = theme_n_words,
-    ancestor_min_share = theme_ancestor_min_share,
-    ancestor_max_size = theme_ancestor_max_size,
-    max_ancestors = theme_max_ancestors
-  )
 
   plots <- list(plain = NULL, leiden = NULL, zscore = NULL, themes = NULL)
   if (igraph::vcount(network) > 0) {
@@ -708,7 +736,7 @@ generate_overlap_network <- function(
     objective_function = objective_function,
     overlap_threshold = overlap_threshold,
     seed             = seed,
-    term_genes       = collection_sub[igraph::V(network)$name],
+    term_genes       = term_genes,
     cluster_themes   = cluster_themes,
     plots            = plots
   )

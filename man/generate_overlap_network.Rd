@@ -180,6 +180,12 @@ When \code{outdir} is non-\code{NULL}, the following files are written:
 \itemize{
 \item \code{<file_stem>_network_summary.csv} -- node/edge/cluster counts.
 \item \code{<file_stem>-cluster-stats.csv} -- per-cluster average degree.
+\item \code{<file_stem>-cluster-membership.csv} -- every GO term in the
+network with its Leiden cluster: the columns of \code{go_term_df} plus
+\code{genes}, the term's DE genes separated by \code{"/"}. Sorted by
+cluster, then by degree.
+\item \code{<file_stem>-cluster-themes.csv} -- one row per cluster with
+its size and candidate labels (\code{cluster_themes}).
 \item \code{<file_stem>-plain.png} -- \code{plots$plain}: network
 coloured by direction (red = up in \code{ident1}, blue = up in
 \code{ident2}, grey = mixed).
