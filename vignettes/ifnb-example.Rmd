@@ -79,7 +79,7 @@ de_results <- run_cluster_de(
   ident2      = "CTRL"
 )
 #> i Running DE for "CD14 Mono" (STIM vs CTRL)
-#> v Running DE for "CD14 Mono" (STIM vs CTRL) [6.3s]
+#> v Running DE for "CD14 Mono" (STIM vs CTRL) [6.1s]
 #> 
 #> * Tested genes: 1408
 #> * DEGs: 704
@@ -87,7 +87,7 @@ de_results <- run_cluster_de(
 #> * Up in CTRL: 374
 #> 
 #> i Running DE for "CD4 Naive T" (STIM vs CTRL)
-#> v Running DE for "CD4 Naive T" (STIM vs CTRL) [935ms]
+#> v Running DE for "CD4 Naive T" (STIM vs CTRL) [884ms]
 #> 
 #> * Tested genes: 526
 #> * DEGs: 202
@@ -95,7 +95,7 @@ de_results <- run_cluster_de(
 #> * Up in CTRL: 42
 #> 
 #> i Running DE for "B" (STIM vs CTRL)
-#> v Running DE for "B" (STIM vs CTRL) [657ms]
+#> v Running DE for "B" (STIM vs CTRL) [629ms]
 #> 
 #> * Tested genes: 812
 #> * DEGs: 263
@@ -340,18 +340,43 @@ modularity is high, and stability (agreement between random seeds) is close to
 stability, so we keep it. Modularity is modest because nearly every term in
 this network is part of one connected interferon response.
 
+If the sweep pointed to a different resolution, `recluster_network()` would
+re-run Leiden on the existing network without rebuilding it, keeping the node
+layout so plots before and after are directly comparable:
+
+
+``` r
+net_fine <- recluster_network(net_results[["CD14 Mono"]], resolution = 1.5)
+net_fine$cluster_stats
+#>   cluster avg_degree n_terms
+#> 1       1   30.50000       2
+#> 2       2   20.85714       7
+#> 3       3   20.50000       4
+#> 4       4   25.66667       3
+#> 5       5    1.00000       2
+#> 6       6   13.35714      14
+#> 7       7   10.33333       3
+#> 8       8   16.28571       7
+```
+
 Each network result holds the `igraph` object, tables of terms and clusters,
-the settings used, and four editable `ggplot` objects:
+the settings used, and the node layout. `plot_network()` draws it as one of
+four editable `ggplot` objects: `regulation`, `leiden`, `zscore` or `themes`.
 
 
 ``` r
 net <- net_results[["CD14 Mono"]]
+net
+#> <scoranet_network> STIM_vs_CTRL_CD14_Mono
+#>   Nodes: 42  Edges: 350  Clusters: 4
+#>   Leiden resolution: 1 (modularity)  Overlap threshold: 0.2
+#>   Plot with plot_network(); tables with network_tables().
 names(net)
 #>  [1] "network"            "clustering"         "overlap_matrix"     "go_term_df"        
 #>  [5] "cluster_stats"      "leiden_resolution"  "objective_function" "overlap_threshold" 
-#>  [9] "seed"               "term_genes"         "cluster_themes"     "plots"
-names(net$plots)
-#> [1] "plain"  "leiden" "zscore" "themes"
+#>  [9] "seed"               "term_genes"         "cluster_themes"     "cluster_palette"   
+#> [13] "layout"             "collection_name"    "ident1"             "ident2"            
+#> [17] "file_stem"          "theme_args"
 ```
 
 ## Direction
@@ -363,12 +388,12 @@ red: stimulation switches on the antiviral program.
 
 
 ``` r
-net$plots$plain
+plot_network(net, "regulation")
 ```
 
 <div class="figure">
-<img src="figures/ifnb-plot-plain-1.png" alt="plot of chunk plot-plain" width="100%" />
-<p class="caption">plot of chunk plot-plain</p>
+<img src="figures/ifnb-plot-regulation-1.png" alt="plot of chunk plot-regulation" width="100%" />
+<p class="caption">plot of chunk plot-regulation</p>
 </div>
 
 The `zscore` plot shows how strongly each term leans one way, on a continuous
@@ -378,7 +403,7 @@ proliferation clusters.
 
 
 ``` r
-net$plots$zscore
+plot_network(net, "zscore")
 ```
 
 <div class="figure">
@@ -390,7 +415,7 @@ net$plots$zscore
 
 
 ``` r
-net$plots$leiden
+plot_network(net, "leiden")
 ```
 
 <div class="figure">
@@ -409,7 +434,7 @@ immune and cytokine response; the small clusters capture translation
 
 
 ``` r
-net$plots$themes
+plot_network(net, "themes", min_terms = 2)
 ```
 
 <div class="figure">
@@ -418,7 +443,7 @@ net$plots$themes
 </div>
 
 The labels are also available as a table, along with alternative label styles
-(`keywords`, `phrase`, `hub`):
+(`keywords`, `phrase`, `hub`, chosen in the plot with `label_by`):
 
 
 ``` r
@@ -442,7 +467,8 @@ knitr::kable(net$cluster_themes[, c("cluster", "n_terms", "ancestor",
 `go_term_df` lists every term in the network with its cluster and direction
 statistics. It is also saved, with each term's DE genes, as
 `<cell type>-cluster-membership.csv`, and the cluster labels as
-`<cell type>-cluster-themes.csv`:
+`<cell type>-cluster-themes.csv`. `network_tables(net)` returns every saved
+table in R:
 
 
 ``` r
@@ -588,7 +614,7 @@ names(net_split)
 
 
 ``` r
-net_split[["CD14 Mono_up"]]$plots$themes
+plot_network(net_split[["CD14 Mono_up"]], "themes")
 ```
 
 <div class="figure">
@@ -625,7 +651,7 @@ files[!grepl("^default/", files)]
 #> [13] "STIM_vs_CTRL/networks/B-cluster-stats.csv"                        
 #> [14] "STIM_vs_CTRL/networks/B-cluster-themes.csv"                       
 #> [15] "STIM_vs_CTRL/networks/B-clustered-leiden.png"                     
-#> [16] "STIM_vs_CTRL/networks/B-plain.png"                                
+#> [16] "STIM_vs_CTRL/networks/B-regulation.png"                           
 #> [17] "STIM_vs_CTRL/networks/B-themes.png"                               
 #> [18] "STIM_vs_CTRL/networks/B-zscore.png"                               
 #> [19] "STIM_vs_CTRL/networks/B_network_summary.csv"                      
@@ -633,7 +659,7 @@ files[!grepl("^default/", files)]
 #> [21] "STIM_vs_CTRL/networks/CD14_Mono-cluster-stats.csv"                
 #> [22] "STIM_vs_CTRL/networks/CD14_Mono-cluster-themes.csv"               
 #> [23] "STIM_vs_CTRL/networks/CD14_Mono-clustered-leiden.png"             
-#> [24] "STIM_vs_CTRL/networks/CD14_Mono-plain.png"                        
+#> [24] "STIM_vs_CTRL/networks/CD14_Mono-regulation.png"                   
 #> [25] "STIM_vs_CTRL/networks/CD14_Mono-themes.png"                       
 #> [26] "STIM_vs_CTRL/networks/CD14_Mono-zscore.png"                       
 #> [27] "STIM_vs_CTRL/networks/CD14_Mono_all_clusters_wordclouds.png"      
@@ -642,7 +668,7 @@ files[!grepl("^default/", files)]
 #> [30] "STIM_vs_CTRL/networks/CD4_Naive_T-cluster-stats.csv"              
 #> [31] "STIM_vs_CTRL/networks/CD4_Naive_T-cluster-themes.csv"             
 #> [32] "STIM_vs_CTRL/networks/CD4_Naive_T-clustered-leiden.png"           
-#> [33] "STIM_vs_CTRL/networks/CD4_Naive_T-plain.png"                      
+#> [33] "STIM_vs_CTRL/networks/CD4_Naive_T-regulation.png"                 
 #> [34] "STIM_vs_CTRL/networks/CD4_Naive_T-themes.png"                     
 #> [35] "STIM_vs_CTRL/networks/CD4_Naive_T-zscore.png"                     
 #> [36] "STIM_vs_CTRL/networks/CD4_Naive_T_network_summary.csv"            
@@ -650,7 +676,7 @@ files[!grepl("^default/", files)]
 #> [38] "STIM_vs_CTRL_split/networks/CD14_Mono_down-cluster-stats.csv"     
 #> [39] "STIM_vs_CTRL_split/networks/CD14_Mono_down-cluster-themes.csv"    
 #> [40] "STIM_vs_CTRL_split/networks/CD14_Mono_down-clustered-leiden.png"  
-#> [41] "STIM_vs_CTRL_split/networks/CD14_Mono_down-plain.png"             
+#> [41] "STIM_vs_CTRL_split/networks/CD14_Mono_down-regulation.png"        
 #> [42] "STIM_vs_CTRL_split/networks/CD14_Mono_down-themes.png"            
 #> [43] "STIM_vs_CTRL_split/networks/CD14_Mono_down-zscore.png"            
 #> [44] "STIM_vs_CTRL_split/networks/CD14_Mono_down_network_summary.csv"   
@@ -658,7 +684,7 @@ files[!grepl("^default/", files)]
 #> [46] "STIM_vs_CTRL_split/networks/CD14_Mono_up-cluster-stats.csv"       
 #> [47] "STIM_vs_CTRL_split/networks/CD14_Mono_up-cluster-themes.csv"      
 #> [48] "STIM_vs_CTRL_split/networks/CD14_Mono_up-clustered-leiden.png"    
-#> [49] "STIM_vs_CTRL_split/networks/CD14_Mono_up-plain.png"               
+#> [49] "STIM_vs_CTRL_split/networks/CD14_Mono_up-regulation.png"          
 #> [50] "STIM_vs_CTRL_split/networks/CD14_Mono_up-themes.png"              
 #> [51] "STIM_vs_CTRL_split/networks/CD14_Mono_up-zscore.png"              
 #> [52] "STIM_vs_CTRL_split/networks/CD14_Mono_up_network_summary.csv"

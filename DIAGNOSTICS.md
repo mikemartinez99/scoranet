@@ -215,17 +215,22 @@ roughly along a diagonal.
 
 ## 5. The network plots
 
-Each network gets three plots with the same layout (`$plots` in each network
-result, also saved as PNGs).
+Draw them with `plot_network(net, type = ...)`. `run_comparison_networks()`
+also saves them as PNGs. The first three share the same layout; `themes` uses a
+layout that keeps each cluster together.
+If the diagnostics above suggest a different resolution, run
+`net <- recluster_network(net, resolution = ...)` first: it re-clusters
+without rebuilding the network and keeps the layout.
 
 | Plot | Node fill | Use it to |
 |---|---|---|
-| `plain` | Direction: red = up in numerator, blue = up in denominator, grey = mixed | See which regions of the network are up or down |
+| `regulation` | Direction: red = up in numerator, blue = up in denominator, grey = mixed | See which regions of the network are up or down |
 | `leiden` | Leiden cluster (legend on the left) | See the modules; match them to the driver-gene plot and wordclouds |
 | `zscore` | Continuous direction z-score, blue to white to red | See *how strongly* each term leans one way |
+| `themes` | Leiden cluster, with a labelled hull around each cluster | Name the modules (labels set by `label_by`) |
 
-In `plain` and `leiden`, node shape also shows direction (circle = up,
-square = down, diamond = mixed). In all three, edge width shows Jaccard overlap
+In `regulation`, `leiden` and `themes`, node shape also shows direction (circle = up,
+square = down, diamond = mixed). In all of them, edge width shows Jaccard overlap
 and node size shows the number of DE genes in the term.
 
 **The direction z-score.** For each term,
@@ -244,7 +249,7 @@ each term. The mean can be pulled in the opposite direction by one gene with an
 extreme fold change; the median and z-score are more robust.
 
 **With `split_direction = TRUE`** every term in the `_up` network is up and every
-term in the `_down` network is down, so the `plain` and `zscore` plots are a
+term in the `_down` network is down, so the `regulation` and `zscore` plots are a
 single colour. Use the `leiden` plot and driver genes for those networks.
 
 ---

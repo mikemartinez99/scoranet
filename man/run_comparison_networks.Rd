@@ -15,6 +15,7 @@ run_comparison_networks(
   seed = 1234,
   split_direction = FALSE,
   zscore_threshold = 1,
+  plot_types = "all",
   theme_label = c("ancestor", "keywords", "phrase", "hub"),
   theme_min_terms = 3,
   theme_n_words = 3,
@@ -71,8 +72,13 @@ structure of \code{go_list}; a mismatch is an error. Default \code{FALSE}.}
 at least this value are called up, at most minus this value down, and
 mixed otherwise. Default \code{1}.}
 
-\item{theme_label}{Character. Text used to label each cluster in the
-themes plot:
+\item{plot_types}{Character. The \code{\link{plot_network}} types saved
+as PNGs for each network, along with their CSV tables. \code{"all"}
+(default) saves all four; \code{NULL} saves no plots (the CSVs from
+\code{\link{generate_overlap_network}} are still written).}
+
+\item{theme_label}{Character. Passed to \code{\link{plot_network}} as
+\code{label_by}: the text used to label each cluster in the themes plot:
 \describe{
 \item{\code{"ancestor"} (default)}{Up to \code{theme_max_ancestors}
 higher-level GO terms that the cluster's terms fall under in the GO
@@ -87,8 +93,9 @@ term names.}
 \item{\code{"hub"}}{The cluster's most connected term.}
 }}
 
-\item{theme_min_terms}{Integer. Clusters with fewer terms get a hull but no
-callout label in the themes plot, to limit clutter. They are still listed
+\item{theme_min_terms}{Integer. Passed to \code{\link{plot_network}} as
+\code{min_terms}: clusters with fewer terms get a hull but no callout
+label in the themes plot, to limit clutter. They are still listed
 colour-coded in the cluster legend. Default \code{3}.}
 
 \item{theme_n_words}{Integer. Number of keywords per cluster label when
@@ -116,9 +123,9 @@ suffix when \code{split_direction = TRUE}.
 \description{
 Iterates over every cluster in a named list of GO enrichment results,
 builds a Jaccard-overlap network of enriched GO terms, applies Leiden
-community detection, and saves network plots and summary tables. Clusters
-that lack enrichment results or have fewer than two significant pathways
-are skipped with a message. With \code{split_direction = TRUE}, a separate
+community detection, and saves network plots (via \code{\link{plot_network}})
+and summary tables. Clusters that lack enrichment results or have fewer
+than two significant pathways are skipped with a message. With \code{split_direction = TRUE}, a separate
 network is built for the up- and down-regulated results of each cluster.
 }
 \section{Output files}{
@@ -127,11 +134,14 @@ Files are written to \code{<base_outdir>/<comp_label>/networks/} with the
 file stem \code{<cluster>} (or \code{<cluster>_up} / \code{<cluster>_down}
 when split), including \code{<stem>-cluster-membership.csv} (which GO
 terms belong to which Leiden cluster, with their DE genes) and
-\code{<stem>-cluster-themes.csv} (one row per cluster with its labels).
-See \code{\link{generate_overlap_network}} for the full file list.
+\code{<stem>-cluster-themes.csv} (one row per cluster with its labels), and
+one PNG per plot type in \code{plot_types} (\code{<stem>-regulation.png},
+\code{-clustered-leiden.png}, \code{-zscore.png}, \code{-themes.png}).
+See \code{\link{generate_overlap_network}} and \code{\link{plot_network}}
+for details.
 }
 
 \seealso{
 \code{\link{build_network_inputs}},
-\code{\link{generate_overlap_network}}
+\code{\link{generate_overlap_network}}, \code{\link{plot_network}}
 }

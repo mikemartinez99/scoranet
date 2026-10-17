@@ -37,12 +37,10 @@ test_that("run_comparison_networks builds one network per cluster by default", {
 
   expect_named(res, "Fib A_1")
   expect_s3_class(res[["Fib A_1"]]$network, "igraph")
-  expect_s3_class(res[["Fib A_1"]]$plots$plain, "ggplot")
-  expect_s3_class(res[["Fib A_1"]]$plots$leiden, "ggplot")
-  expect_true(file.exists(paste0(outdir, "A_vs_B/networks/Fib_A_1-plain.png")))
-  expect_true(file.exists(paste0(outdir, "A_vs_B/networks/Fib_A_1-clustered-leiden.png")))
-  expect_s3_class(res[["Fib A_1"]]$plots$zscore, "ggplot")
-  expect_true(file.exists(paste0(outdir, "A_vs_B/networks/Fib_A_1-zscore.png")))
+  expect_null(res[["Fib A_1"]]$plots)
+  for (suffix in c("-regulation", "-clustered-leiden", "-zscore", "-themes")) {
+    expect_true(file.exists(paste0(outdir, "A_vs_B/networks/Fib_A_1", suffix, ".png")))
+  }
 
   membership <- read.csv(paste0(outdir, "A_vs_B/networks/Fib_A_1-cluster-membership.csv"))
   expect_true(all(c("go_term", "cluster", "regulation", "zscore", "genes") %in% names(membership)))
@@ -71,8 +69,23 @@ test_that("run_comparison_networks with split_direction = TRUE builds up and dow
   expect_true(all(res[["Fib A_1_down"]]$go_term_df$regulation == "down"))
 
   netdir <- paste0(outdir, "A_vs_B/networks/")
-  expect_true(file.exists(paste0(netdir, "Fib_A_1_up-plain.png")))
+  expect_true(file.exists(paste0(netdir, "Fib_A_1_up-regulation.png")))
   expect_true(file.exists(paste0(netdir, "Fib_A_1_down-clustered-leiden.png")))
+
+  unlink(outdir, recursive = TRUE)
+})
+
+test_that("run_comparison_networks with plot_types = NULL saves CSVs but no PNGs", {
+  outdir <- paste0(tempdir(), "/test_net_noplots/")
+  go_list <- list(`Fib A/1` = mock_go_table(paste0("Up", 1:10), "comb"))
+
+  res <- run_quiet(go_list, mock_net_de(), comp_label = "A_vs_B",
+                   base_outdir = outdir, plot_types = NULL)
+
+  netdir <- paste0(outdir, "A_vs_B/networks/")
+  expect_named(res, "Fib A_1")
+  expect_length(list.files(netdir, pattern = "\\.png$"), 0)
+  expect_true(file.exists(paste0(netdir, "Fib_A_1-cluster-membership.csv")))
 
   unlink(outdir, recursive = TRUE)
 })

@@ -177,11 +177,11 @@
 <hr></div>
 <div class="section level2">
 <h2 id="id_5-the-network-plots">5. The network plots<a class="anchor" aria-label="anchor" href="#id_5-the-network-plots"></a></h2>
-<p>Each network gets three plots with the same layout (<code>$plots</code> in each network result, also saved as PNGs).</p>
+<p>Draw them with <code>plot_network(net, type = ...)</code>. <code><a href="reference/run_comparison_networks.html">run_comparison_networks()</a></code> also saves them as PNGs. The first three share the same layout; <code>themes</code> uses a layout that keeps each cluster together. If the diagnostics above suggest a different resolution, run <code>net &lt;- recluster_network(net, resolution = ...)</code> first: it re-clusters without rebuilding the network and keeps the layout.</p>
 <table class="table"><colgroup><col width="33%"><col width="33%"><col width="33%"></colgroup><thead><tr><th>Plot</th>
 <th>Node fill</th>
 <th>Use it to</th>
-</tr></thead><tbody><tr><td><code>plain</code></td>
+</tr></thead><tbody><tr><td><code>regulation</code></td>
 <td>Direction: red = up in numerator, blue = up in denominator, grey = mixed</td>
 <td>See which regions of the network are up or down</td>
 </tr><tr><td><code>leiden</code></td>
@@ -190,14 +190,17 @@
 </tr><tr><td><code>zscore</code></td>
 <td>Continuous direction z-score, blue to white to red</td>
 <td>See <em>how strongly</em> each term leans one way</td>
-</tr></tbody></table><p>In <code>plain</code> and <code>leiden</code>, node shape also shows direction (circle = up, square = down, diamond = mixed). In all three, edge width shows Jaccard overlap and node size shows the number of DE genes in the term.</p>
+</tr><tr><td><code>themes</code></td>
+<td>Leiden cluster, with a labelled hull around each cluster</td>
+<td>Name the modules (labels set by <code>label_by</code>)</td>
+</tr></tbody></table><p>In <code>regulation</code>, <code>leiden</code> and <code>themes</code>, node shape also shows direction (circle = up, square = down, diamond = mixed). In all of them, edge width shows Jaccard overlap and node size shows the number of DE genes in the term.</p>
 <p><strong>The direction z-score.</strong> For each term, <code>z = (n_up - n_down) / sqrt(n_up + n_down)</code>, using the term’s DE genes. It combines <em>how consistently</em> the genes move with <em>how many</em> genes support it:</p>
 <ul><li>A term with 9 up and 1 down genes: z = 2.5 (clearly up).</li>
 <li>A term with 3 up and 2 down: z = 0.45 (mixed).</li>
 <li>A term with a single up gene: z = 1.0 (up, but weakly supported).</li>
 </ul><p>Terms are called up or down when |z| is at least <code>zscore_threshold</code> (default 1) and mixed otherwise. Raise it (for example to 2) for stricter direction calls.</p>
 <p>The output tables also keep the <strong>mean</strong> and <strong>median</strong> log2 fold change for each term. The mean can be pulled in the opposite direction by one gene with an extreme fold change; the median and z-score are more robust.</p>
-<p><strong>With <code>split_direction = TRUE</code></strong> every term in the <code>_up</code> network is up and every term in the <code>_down</code> network is down, so the <code>plain</code> and <code>zscore</code> plots are a single colour. Use the <code>leiden</code> plot and driver genes for those networks.</p>
+<p><strong>With <code>split_direction = TRUE</code></strong> every term in the <code>_up</code> network is up and every term in the <code>_down</code> network is down, so the <code>regulation</code> and <code>zscore</code> plots are a single colour. Use the <code>leiden</code> plot and driver genes for those networks.</p>
 <hr></div>
 <div class="section level2">
 <h2 id="quick-reference">Quick reference<a class="anchor" aria-label="anchor" href="#quick-reference"></a></h2>

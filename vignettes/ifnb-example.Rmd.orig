@@ -225,13 +225,23 @@ modularity is high, and stability (agreement between random seeds) is close to
 stability, so we keep it. Modularity is modest because nearly every term in
 this network is part of one connected interferon response.
 
+If the sweep pointed to a different resolution, `recluster_network()` would
+re-run Leiden on the existing network without rebuilding it, keeping the node
+layout so plots before and after are directly comparable:
+
+```{r recluster, message = FALSE}
+net_fine <- recluster_network(net_results[["CD14 Mono"]], resolution = 1.5)
+net_fine$cluster_stats
+```
+
 Each network result holds the `igraph` object, tables of terms and clusters,
-the settings used, and four editable `ggplot` objects:
+the settings used, and the node layout. `plot_network()` draws it as one of
+four editable `ggplot` objects: `regulation`, `leiden`, `zscore` or `themes`.
 
 ```{r net-structure}
 net <- net_results[["CD14 Mono"]]
+net
 names(net)
-names(net$plots)
 ```
 
 ## Direction
@@ -241,8 +251,8 @@ up in `CTRL` (blue), or both (grey, "mixed"). Edge width shows overlap; node
 size shows the number of DE genes in the term. Almost the whole network is
 red: stimulation switches on the antiviral program.
 
-```{r plot-plain, fig.width = 9, fig.height = 8}
-net$plots$plain
+```{r plot-regulation, fig.width = 9, fig.height = 8}
+plot_network(net, "regulation")
 ```
 
 The `zscore` plot shows how strongly each term leans one way, on a continuous
@@ -251,13 +261,13 @@ few blue terms, up in `CTRL`, belong to the small translation and
 proliferation clusters.
 
 ```{r plot-zscore, fig.width = 9.5, fig.height = 8}
-net$plots$zscore
+plot_network(net, "zscore")
 ```
 
 ## Leiden clusters
 
 ```{r plot-leiden, fig.width = 10, fig.height = 8}
-net$plots$leiden
+plot_network(net, "leiden")
 ```
 
 ## Cluster themes
@@ -270,11 +280,11 @@ immune and cytokine response; the small clusters capture translation
 (down in `STIM`) and cell proliferation.
 
 ```{r plot-themes, fig.width = 11, fig.height = 8}
-net$plots$themes
+plot_network(net, "themes", min_terms = 2)
 ```
 
 The labels are also available as a table, along with alternative label styles
-(`keywords`, `phrase`, `hub`):
+(`keywords`, `phrase`, `hub`, chosen in the plot with `label_by`):
 
 ```{r themes-table}
 knitr::kable(net$cluster_themes[, c("cluster", "n_terms", "ancestor",
@@ -286,7 +296,8 @@ knitr::kable(net$cluster_themes[, c("cluster", "n_terms", "ancestor",
 `go_term_df` lists every term in the network with its cluster and direction
 statistics. It is also saved, with each term's DE genes, as
 `<cell type>-cluster-membership.csv`, and the cluster labels as
-`<cell type>-cluster-themes.csv`:
+`<cell type>-cluster-themes.csv`. `network_tables(net)` returns every saved
+table in R:
 
 ```{r go-term-df}
 knitr::kable(
@@ -387,7 +398,7 @@ names(net_split)
 ```
 
 ```{r split-up, fig.width = 11, fig.height = 8}
-net_split[["CD14 Mono_up"]]$plots$themes
+plot_network(net_split[["CD14 Mono_up"]], "themes")
 ```
 
 Built from the up-regulated genes alone, the CD14 monocyte response resolves

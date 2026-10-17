@@ -29,15 +29,18 @@ test_that("generate_overlap_network returns expected list structure", {
     collection = inp$collection,
     de_genes = inp$de_genes,
     collection_name = "test_network",
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   expect_type(result, "list")
   expect_named(result, c("network", "clustering", "overlap_matrix",
                           "go_term_df", "cluster_stats", "leiden_resolution",
                           "objective_function", "overlap_threshold", "seed",
-                          "term_genes", "cluster_themes", "plots"))
+                          "term_genes", "cluster_themes", "cluster_palette",
+                          "layout", "collection_name", "ident1", "ident2",
+                          "file_stem", "theme_args"))
+  expect_s3_class(result, "scoranet_network")
+  expect_equal(dim(result$layout), c(igraph::vcount(result$network), 2))
 })
 
 test_that("generate_overlap_network produces igraph object", {
@@ -49,8 +52,7 @@ test_that("generate_overlap_network produces igraph object", {
     collection = inp$collection,
     de_genes = inp$de_genes,
     collection_name = "test_net",
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   expect_s3_class(result$network, "igraph")
@@ -65,8 +67,7 @@ test_that("overlap_matrix is square with correct dimensions", {
     collection = inp$collection,
     de_genes = inp$de_genes,
     collection_name = "test_net",
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   mat <- result$overlap_matrix
@@ -84,8 +85,7 @@ test_that("overlap_matrix values are between 0 and 1", {
     collection = inp$collection,
     de_genes = inp$de_genes,
     collection_name = "test_net",
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   expect_true(all(result$overlap_matrix >= 0))
@@ -101,8 +101,7 @@ test_that("go_term_df has expected columns", {
     collection = inp$collection,
     de_genes = inp$de_genes,
     collection_name = "test_net",
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   expected_cols <- c("go_term", "cluster", "degree", "regulation",
@@ -119,8 +118,7 @@ test_that("regulation labels are only 'up' or 'down'", {
     collection = inp$collection,
     de_genes = inp$de_genes,
     collection_name = "test_net",
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   regulations <- result$go_term_df$regulation
@@ -136,8 +134,7 @@ test_that("cluster_stats has expected columns", {
     collection = inp$collection,
     de_genes = inp$de_genes,
     collection_name = "test_net",
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   expect_true(all(c("cluster", "avg_degree", "n_terms") %in%
@@ -154,8 +151,7 @@ test_that("leiden_resolution is preserved in output", {
     de_genes = inp$de_genes,
     collection_name = "test_net",
     leiden_resolution = 0.05,
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   expect_equal(result$leiden_resolution, 0.05)
@@ -173,14 +169,14 @@ test_that("generate_overlap_network writes files when outdir is set", {
     de_genes = inp$de_genes,
     collection_name = "test_net",
     file_stem = "test_stem",
-    outdir = outdir,
-    plot_to_screen = FALSE
+    outdir = outdir
   )
 
   expect_true(file.exists(paste0(outdir, "test_stem_network_summary.csv")))
   expect_true(file.exists(paste0(outdir, "test_stem-cluster-stats.csv")))
-  expect_true(file.exists(paste0(outdir, "test_stem-plain.png")))
-  expect_true(file.exists(paste0(outdir, "test_stem-clustered-leiden.png")))
+  expect_true(file.exists(paste0(outdir, "test_stem-cluster-membership.csv")))
+  expect_true(file.exists(paste0(outdir, "test_stem-cluster-themes.csv")))
+  expect_length(list.files(outdir, pattern = "\\.png$"), 0)
 
   unlink(outdir, recursive = TRUE)
 })
@@ -197,8 +193,7 @@ test_that("generate_overlap_network warns with fewer than 2 pathways", {
         collection = collection,
         de_genes = de_genes,
         collection_name = "sparse_net",
-        outdir = NULL,
-        plot_to_screen = FALSE
+        outdir = NULL
       ),
       silent = TRUE
     ),
@@ -223,8 +218,7 @@ test_that("hyphens in names are replaced with underscores", {
     collection = collection,
     de_genes = de_genes,
     collection_name = "hyphen_test",
-    outdir = NULL,
-    plot_to_screen = FALSE
+    outdir = NULL
   )
 
   node_names <- igraph::V(result$network)$name
@@ -251,7 +245,7 @@ test_that("generate_overlap_network calls up, down, and mixed from the z-score",
 
   res <- generate_overlap_network(
     results_set, collection, de_genes = unique(unlist(collection)),
-    outdir = NULL, plot_to_screen = FALSE, leiden_resolution = 0.5
+    outdir = NULL, leiden_resolution = 0.5
   )
 
   reg <- stats::setNames(res$go_term_df$regulation, res$go_term_df$go_term)
@@ -259,7 +253,6 @@ test_that("generate_overlap_network calls up, down, and mixed from the z-score",
                c("up", "down", "mixed"))
   expect_true(all(c("median_log2FC", "n_up", "n_down", "zscore") %in%
                     colnames(res$go_term_df)))
-  expect_s3_class(res$plots$zscore, "ggplot")
 })
 
 test_that("generate_overlap_network falls back to fold-change sign without z-scores", {
@@ -268,20 +261,18 @@ test_that("generate_overlap_network falls back to fold-change sign without z-sco
 
   res <- generate_overlap_network(
     inp$results_set, inp$collection, inp$de_genes,
-    outdir = NULL, plot_to_screen = FALSE
+    outdir = NULL
   )
 
   expect_true(all(res$go_term_df$regulation %in% c("up", "down")))
   expect_true(all(is.na(res$go_term_df$zscore)))
-  expect_null(res$plots$zscore)
-  expect_s3_class(res$plots$plain, "ggplot")
 })
 
 test_that("generate_overlap_network clustering is reproducible and leaves the session seed alone", {
   inp <- make_test_inputs(10)
   run <- function() generate_overlap_network(
     inp$results_set, inp$collection, inp$de_genes,
-    outdir = NULL, plot_to_screen = FALSE
+    outdir = NULL
   )$go_term_df$cluster
 
   set.seed(1); a <- run()
@@ -299,7 +290,7 @@ test_that("generate_overlap_network returns NULL when no terms overlap", {
 
   res <- suppressMessages(generate_overlap_network(
     results_set, collection, unlist(collection),
-    outdir = NULL, plot_to_screen = FALSE
+    outdir = NULL
   ))
 
   expect_null(res)

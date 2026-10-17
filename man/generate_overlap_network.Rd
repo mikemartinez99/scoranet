@@ -14,13 +14,10 @@ generate_overlap_network(
   objective_function = c("modularity", "CPM"),
   seed = 1234,
   outdir = NULL,
-  plot_to_screen = TRUE,
   file_stem = NULL,
   ident1 = NULL,
   ident2 = NULL,
   zscore_threshold = 1,
-  theme_label = c("ancestor", "keywords", "phrase", "hub"),
-  theme_min_terms = 3,
   theme_n_words = 3,
   theme_ancestor_min_share = 0.15,
   theme_ancestor_max_size = 1000,
@@ -69,15 +66,12 @@ session. \code{NULL} disables seeding. Default \code{1234}.}
 \item{outdir}{Character path to the output directory. If \code{NULL},
 no files are written. The directory is created if it does not exist.}
 
-\item{plot_to_screen}{Logical. If \code{TRUE} (default), the Leiden-
-clustered plot (\code{plots$leiden}) is also printed to the active
-graphics device (e.g., the RStudio Plots pane).}
-
 \item{file_stem}{Character string used as the filename prefix for all
-exported files. If \code{NULL} or empty, \code{collection_name} is used.}
+exported files. If \code{NULL} or empty, \code{collection_name} is used.
+Stored in the result as the default stem for \code{\link{plot_network}}.}
 
 \item{ident1, ident2}{Character. The numerator and denominator identities of
-the comparison, used in the legend as \code{"Upregulated in <ident1>"}
+the comparison, used in plot legends as \code{"Upregulated in <ident1>"}
 and \code{"Upregulated in <ident2>"}. If \code{NULL} (default), they are
 parsed from \code{collection_name} around \code{"_vs_"}.}
 
@@ -85,28 +79,8 @@ parsed from \code{collection_name} around \code{"_vs_"}.}
 direction z-score is at least this value, \code{"down"} when it is at
 most minus this value, and \code{"mixed"} otherwise. Default \code{1}.}
 
-\item{theme_label}{Character. Text used to label each cluster in the
-themes plot:
-\describe{
-\item{\code{"ancestor"} (default)}{Up to \code{theme_max_ancestors}
-higher-level GO terms that the cluster's terms fall under in the GO
-hierarchy (via GO.db), with how many of the cluster's terms they
-cover, e.g. \code{"cytokine production / response to cytokine
-      (22/39)"}. Each is chosen to cover many of the remaining terms while
-staying specific. Falls back to the hub term when no
-ancestor qualifies or the results have no GO IDs.}
-\item{\code{"keywords"}}{The most distinctive words in the cluster's
-term names.}
-\item{\code{"phrase"}}{The top term name, as used by the wordclouds.}
-\item{\code{"hub"}}{The cluster's most connected term.}
-}}
-
-\item{theme_min_terms}{Integer. Clusters with fewer terms get a hull but no
-callout label in the themes plot, to limit clutter. They are still listed
-colour-coded in the cluster legend. Default \code{3}.}
-
-\item{theme_n_words}{Integer. Number of keywords per cluster label when
-\code{theme_label = "keywords"}. Default \code{3}.}
+\item{theme_n_words}{Integer. Number of keywords per cluster in the
+\code{keywords} theme label. Default \code{3}.}
 
 \item{theme_ancestor_min_share}{Numeric \code{(0, 1]}. Minimum share of a
 cluster's terms an ancestor must cover to be used as a label. Default
@@ -122,7 +96,8 @@ cluster label. Default \code{2}.}
 }
 \value{
 \code{NULL} (with a message) if no two terms overlap at
-\code{overlap_threshold}. Otherwise a list with the following elements:
+\code{overlap_threshold}. Otherwise a \code{scoranet_network} object: a
+list with the following elements.
 \describe{
 \item{network}{An \code{igraph} graph object with vertex attributes
 \code{fc}, \code{regulation}, \code{size}, \code{cluster},
@@ -150,33 +125,37 @@ contains. Used by \code{\link{plot_driver_genes}}.}
 IDs joined by \code{";"}; \code{ancestor_n_covered}, how many of the
 cluster's terms fall under them; \code{NA} if none qualifies); and the
 other candidate labels \code{keywords}, \code{phrase}, and \code{hub}.}
-\item{plots}{A list of \code{ggplot} objects built with \pkg{ggraph}:
-\code{plain} (nodes filled by direction: up, down, or mixed),
-\code{leiden} (nodes filled by Leiden cluster, with the cluster legend
-on the left), and \code{zscore} (nodes filled by a continuous
-blue-white-red gradient of the direction z-score). In \code{plain} and
-\code{leiden}, node shape shows direction (circle = up in
-\code{ident1}, square = up in \code{ident2}, diamond = mixed). Edge
-width shows Jaccard overlap. Cluster colours come from the 40-colour
-dittoSeq palette. \code{themes} is the Leiden plot annotated with
-cluster themes: a shaded hull around each cluster with a callout naming
-its theme, and a layout that keeps each cluster together (so
-node positions differ from the other plots). \code{zscore} is
-\code{NULL} when \code{results_set} has no \code{zscore} column.}
+\item{cluster_palette}{Character vector of cluster colours (from the
+40-colour dittoSeq palette), one per cluster.}
+\item{layout}{Two-column matrix of node coordinates
+(Fruchterman-Reingold, seeded with \code{seed}). Shared by every
+\code{\link{plot_network}} type except \code{themes}, and kept by
+\code{\link{recluster_network}}.}
+\item{collection_name, ident1, ident2, file_stem}{Labels used for plot
+titles, legends, and file names.}
+\item{theme_args}{The theme label settings, reused by
+\code{\link{recluster_network}}.}
 }
 }
 \description{
 Constructs an undirected, weighted network where nodes are enriched GO terms
 and edge weights are Jaccard overlap coefficients between their DE gene
 sets. Edges below \code{overlap_threshold} are removed. Leiden community
-detection is applied to identify clusters of functionally related terms.
-The function produces two PNG plots (a plain up/down-regulation view and a
-Leiden-clustered view) and exports CSV summaries of node-level and
-cluster-level statistics.
+detection is applied to identify clusters of functionally related terms,
+and each cluster gets candidate theme labels. CSV summaries of node-level
+and cluster-level statistics are exported when \code{outdir} is set.
+}
+\details{
+This function draws no plots. Check the clustering with
+\code{\link{run_network_diagnostics}}, change the resolution with
+\code{\link{recluster_network}} if needed, then draw figures with
+\code{\link{plot_network}}. \code{\link{network_tables}} returns the tables
+that are written as CSVs.
 }
 \section{Side effects}{
 
-When \code{outdir} is non-\code{NULL}, the following files are written:
+When \code{outdir} is non-\code{NULL}, the tables from
+\code{\link{network_tables}} are written:
 \itemize{
 \item \code{<file_stem>_network_summary.csv} -- node/edge/cluster counts.
 \item \code{<file_stem>-cluster-stats.csv} -- per-cluster average degree.
@@ -186,19 +165,12 @@ network with its Leiden cluster: the columns of \code{go_term_df} plus
 cluster, then by degree.
 \item \code{<file_stem>-cluster-themes.csv} -- one row per cluster with
 its size and candidate labels (\code{cluster_themes}).
-\item \code{<file_stem>-plain.png} -- \code{plots$plain}: network
-coloured by direction (red = up in \code{ident1}, blue = up in
-\code{ident2}, grey = mixed).
-\item \code{<file_stem>-clustered-leiden.png} -- \code{plots$leiden}:
-network coloured by Leiden cluster membership.
-\item \code{<file_stem>-zscore.png} -- \code{plots$zscore}: network
-coloured by direction z-score.
-\item \code{<file_stem>-themes.png} -- \code{plots$themes}: network
-with labelled cluster-theme hulls.
 }
+No plots are drawn or saved; use \code{\link{plot_network}}.
 }
 
 \seealso{
-\code{\link{build_network_inputs}},
+\code{\link{build_network_inputs}}, \code{\link{plot_network}},
+\code{\link{recluster_network}}, \code{\link{network_tables}},
 \code{\link{write_cluster_results}}
 }

@@ -62,7 +62,7 @@ For each cell type, scoranet:
 
 5. **Checks the settings** with built-in diagnostics for the overlap threshold, Leiden resolution, and the genes driving each module to help you fine-tune your figures and biological interpretation.
 
-All plots are returned as editable `ggplot2` objects, and every table is written to disk.
+All plots are returned as editable `ggplot2` objects, and every table is written to disk (or returned in R with `network_tables()`).
 
 
 
@@ -84,7 +84,9 @@ For a guide to reading the diagnostic figures, see [DIAGNOSTICS.md](DIAGNOSTICS.
   - **run_cluster_de** returns DEGs and all tested genes per cluster, with explicit Seurat **FindMarkers** pre-filters and Seurat 5 support<br>
   - **run_go_ora** supports tested-gene universes, up/down split analysis, and optional term simplification<br>
   - **run_comparison_networks** builds seeded Leiden networks (modularity objective) with z-score direction calls<br>
-  - Added **ggraph** network plots: direction, Leiden clusters, z-score, and **cluster themes** named by the GO hierarchy<br>
+  - Networks follow a **build, diagnose, then plot** workflow: **generate_overlap_network** builds and clusters, **recluster_network** re-runs Leiden at a new resolution without rebuilding, and **plot_network** draws figures on demand<br>
+  - Added **ggraph** network plots via **plot_network**: direction (`regulation`), Leiden clusters, z-score, and **cluster themes** named by the GO hierarchy; each saved PNG comes with its CSV tables<br>
+  - Added **network_tables** to get the summary, cluster stats, membership and themes tables in R<br>
   - Added **diagnostics**: Leiden resolution sweep, overlap threshold, driver genes, and comparison overview<br>
   - Added **write_de** and **write_go** (replacing write_de_results)<br>
   - Added **unit tests** and the **interferon-beta PBMC vignette**<br>

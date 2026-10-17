@@ -128,7 +128,7 @@ within each cell type and prints a short summary per cluster.</p>
 <span>  ident2      <span class="op">=</span> <span class="st">"CTRL"</span></span>
 <span><span class="op">)</span></span>
 <span><span class="co">#&gt; i Running DE for "CD14 Mono" (STIM vs CTRL)</span></span>
-<span><span class="co">#&gt; v Running DE for "CD14 Mono" (STIM vs CTRL) [6.3s]</span></span>
+<span><span class="co">#&gt; v Running DE for "CD14 Mono" (STIM vs CTRL) [6.1s]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; * Tested genes: 1408</span></span>
 <span><span class="co">#&gt; * DEGs: 704</span></span>
@@ -136,7 +136,7 @@ within each cell type and prints a short summary per cluster.</p>
 <span><span class="co">#&gt; * Up in CTRL: 374</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; i Running DE for "CD4 Naive T" (STIM vs CTRL)</span></span>
-<span><span class="co">#&gt; v Running DE for "CD4 Naive T" (STIM vs CTRL) [935ms]</span></span>
+<span><span class="co">#&gt; v Running DE for "CD4 Naive T" (STIM vs CTRL) [884ms]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; * Tested genes: 526</span></span>
 <span><span class="co">#&gt; * DEGs: 202</span></span>
@@ -144,7 +144,7 @@ within each cell type and prints a short summary per cluster.</p>
 <span><span class="co">#&gt; * Up in CTRL: 42</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; i Running DE for "B" (STIM vs CTRL)</span></span>
-<span><span class="co">#&gt; v Running DE for "B" (STIM vs CTRL) [657ms]</span></span>
+<span><span class="co">#&gt; v Running DE for "B" (STIM vs CTRL) [629ms]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; * Tested genes: 812</span></span>
 <span><span class="co">#&gt; * DEGs: 263</span></span>
@@ -523,17 +523,40 @@ seeds) is close to 1. Here the default resolution of 1 sits at the
 modularity peak with perfect stability, so we keep it. Modularity is
 modest because nearly every term in this network is part of one
 connected interferon response.</p>
-<p>Each network result holds the <code>igraph</code> object, tables of
-terms and clusters, the settings used, and four editable
-<code>ggplot</code> objects:</p>
+<p>If the sweep pointed to a different resolution,
+<code><a href="../reference/recluster_network.html">recluster_network()</a></code> would re-run Leiden on the existing
+network without rebuilding it, keeping the node layout so plots before
+and after are directly comparable:</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">net_fine</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/recluster_network.html">recluster_network</a></span><span class="op">(</span><span class="va">net_results</span><span class="op">[[</span><span class="st">"CD14 Mono"</span><span class="op">]</span><span class="op">]</span>, resolution <span class="op">=</span> <span class="fl">1.5</span><span class="op">)</span></span>
+<span><span class="va">net_fine</span><span class="op">$</span><span class="va">cluster_stats</span></span>
+<span><span class="co">#&gt;   cluster avg_degree n_terms</span></span>
+<span><span class="co">#&gt; 1       1   30.50000       2</span></span>
+<span><span class="co">#&gt; 2       2   20.85714       7</span></span>
+<span><span class="co">#&gt; 3       3   20.50000       4</span></span>
+<span><span class="co">#&gt; 4       4   25.66667       3</span></span>
+<span><span class="co">#&gt; 5       5    1.00000       2</span></span>
+<span><span class="co">#&gt; 6       6   13.35714      14</span></span>
+<span><span class="co">#&gt; 7       7   10.33333       3</span></span>
+<span><span class="co">#&gt; 8       8   16.28571       7</span></span></code></pre></div>
+<p>Each network result holds the <code>igraph</code> object, tables of
+terms and clusters, the settings used, and the node layout.
+<code><a href="../reference/plot_network.html">plot_network()</a></code> draws it as one of four editable
+<code>ggplot</code> objects: <code>regulation</code>,
+<code>leiden</code>, <code>zscore</code> or <code>themes</code>.</p>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">net</span> <span class="op">&lt;-</span> <span class="va">net_results</span><span class="op">[[</span><span class="st">"CD14 Mono"</span><span class="op">]</span><span class="op">]</span></span>
+<span><span class="va">net</span></span>
+<span><span class="co">#&gt; &lt;scoranet_network&gt; STIM_vs_CTRL_CD14_Mono</span></span>
+<span><span class="co">#&gt;   Nodes: 42  Edges: 350  Clusters: 4</span></span>
+<span><span class="co">#&gt;   Leiden resolution: 1 (modularity)  Overlap threshold: 0.2</span></span>
+<span><span class="co">#&gt;   Plot with plot_network(); tables with network_tables().</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">net</span><span class="op">)</span></span>
 <span><span class="co">#&gt;  [1] "network"            "clustering"         "overlap_matrix"     "go_term_df"        </span></span>
 <span><span class="co">#&gt;  [5] "cluster_stats"      "leiden_resolution"  "objective_function" "overlap_threshold" </span></span>
-<span><span class="co">#&gt;  [9] "seed"               "term_genes"         "cluster_themes"     "plots"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">net</span><span class="op">$</span><span class="va">plots</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "plain"  "leiden" "zscore" "themes"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [9] "seed"               "term_genes"         "cluster_themes"     "cluster_palette"   </span></span>
+<span><span class="co">#&gt; [13] "layout"             "collection_name"    "ident1"             "ident2"            </span></span>
+<span><span class="co">#&gt; [17] "file_stem"          "theme_args"</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="direction">Direction<a class="anchor" aria-label="anchor" href="#direction"></a>
@@ -543,19 +566,19 @@ terms and clusters, the settings used, and four editable
 “mixed”). Edge width shows overlap; node size shows the number of DE
 genes in the term. Almost the whole network is red: stimulation switches
 on the antiviral program.</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net</span><span class="op">$</span><span class="va">plots</span><span class="op">$</span><span class="va">plain</span></span></code></pre></div>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_network.html">plot_network</a></span><span class="op">(</span><span class="va">net</span>, <span class="st">"regulation"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
-<img src="figures/ifnb-plot-plain-1.png" alt="plot of chunk plot-plain" width="100%"><p class="caption">
-plot of chunk plot-plain
+<img src="figures/ifnb-plot-regulation-1.png" alt="plot of chunk plot-regulation" width="100%"><p class="caption">
+plot of chunk plot-regulation
 </p>
 </div>
 <p>The <code>zscore</code> plot shows how strongly each term leans one
 way, on a continuous scale. The darkest red terms sit at the centre of
 the antiviral response; the few blue terms, up in <code>CTRL</code>,
 belong to the small translation and proliferation clusters.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net</span><span class="op">$</span><span class="va">plots</span><span class="op">$</span><span class="va">zscore</span></span></code></pre></div>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_network.html">plot_network</a></span><span class="op">(</span><span class="va">net</span>, <span class="st">"zscore"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="figures/ifnb-plot-zscore-1.png" alt="plot of chunk plot-zscore" width="100%"><p class="caption">
 plot of chunk plot-zscore
@@ -565,8 +588,8 @@ plot of chunk plot-zscore
 <div class="section level3">
 <h3 id="leiden-clusters">Leiden clusters<a class="anchor" aria-label="anchor" href="#leiden-clusters"></a>
 </h3>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net</span><span class="op">$</span><span class="va">plots</span><span class="op">$</span><span class="va">leiden</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_network.html">plot_network</a></span><span class="op">(</span><span class="va">net</span>, <span class="st">"leiden"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="figures/ifnb-plot-leiden-1.png" alt="plot of chunk plot-leiden" width="100%"><p class="caption">
 plot of chunk plot-leiden
@@ -583,8 +606,8 @@ separate the direct antiviral response (viral process, response to type
 I interferon) from the broader immune and cytokine response; the small
 clusters capture translation (down in <code>STIM</code>) and cell
 proliferation.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net</span><span class="op">$</span><span class="va">plots</span><span class="op">$</span><span class="va">themes</span></span></code></pre></div>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_network.html">plot_network</a></span><span class="op">(</span><span class="va">net</span>, <span class="st">"themes"</span>, min_terms <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="figures/ifnb-plot-themes-1.png" alt="plot of chunk plot-themes" width="100%"><p class="caption">
 plot of chunk plot-themes
@@ -592,8 +615,8 @@ plot of chunk plot-themes
 </div>
 <p>The labels are also available as a table, along with alternative
 label styles (<code>keywords</code>, <code>phrase</code>,
-<code>hub</code>):</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code>hub</code>, chosen in the plot with <code>label_by</code>):</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span><span class="va">net</span><span class="op">$</span><span class="va">cluster_themes</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cluster"</span>, <span class="st">"n_terms"</span>, <span class="st">"ancestor"</span>,</span>
 <span>                                    <span class="st">"ancestor_n_covered"</span>, <span class="st">"hub"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span></code></pre></div>
 <table class="table">
@@ -649,8 +672,9 @@ label styles (<code>keywords</code>, <code>phrase</code>,
 <p><code>go_term_df</code> lists every term in the network with its
 cluster and direction statistics. It is also saved, with each term’s DE
 genes, as <code>&lt;cell type&gt;-cluster-membership.csv</code>, and the
-cluster labels as <code>&lt;cell type&gt;-cluster-themes.csv</code>:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+cluster labels as <code>&lt;cell type&gt;-cluster-themes.csv</code>.
+<code>network_tables(net)</code> returns every saved table in R:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">knitr</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">net</span><span class="op">$</span><span class="va">go_term_df</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/order.html" class="external-link">order</a></span><span class="op">(</span><span class="op">-</span><span class="va">net</span><span class="op">$</span><span class="va">go_term_df</span><span class="op">$</span><span class="va">degree</span><span class="op">)</span>,</span>
 <span>                      <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"go_term"</span>, <span class="st">"cluster"</span>, <span class="st">"degree"</span>, <span class="st">"regulation"</span>,</span>
@@ -771,7 +795,7 @@ between organisms</td>
 <h3 id="driver-genes">Driver genes<a class="anchor" aria-label="anchor" href="#driver-genes"></a>
 </h3>
 <p>Which genes is each cluster built on?</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dx</span><span class="op">$</span><span class="va">networks</span><span class="op">[[</span><span class="st">"CD14 Mono"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">driver_genes</span></span></code></pre></div>
 <div class="figure">
 <img src="figures/ifnb-diag-drivers-1.png" alt="plot of chunk diag-drivers" width="100%"><p class="caption">
@@ -786,7 +810,7 @@ that go down after stimulation.</p>
 <div class="section level3">
 <h3 id="overview-across-cell-types">Overview across cell types<a class="anchor" aria-label="anchor" href="#overview-across-cell-types"></a>
 </h3>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dx</span><span class="op">$</span><span class="va">overview</span></span></code></pre></div>
 <div class="figure">
 <img src="figures/ifnb-diag-overview-1.png" alt="plot of chunk diag-overview" width="100%"><p class="caption">
@@ -801,7 +825,7 @@ directions, while the T and B cells respond mostly upward.</p>
 </h3>
 <p><code><a href="../reference/write_cluster_wordclouds_patchwork.html">write_cluster_wordclouds_patchwork()</a></code> saves a word cloud
 of term names for each cluster:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/write_cluster_wordclouds_patchwork.html">write_cluster_wordclouds_patchwork</a></span><span class="op">(</span></span>
 <span>  net_list   <span class="op">=</span> <span class="va">net_results</span><span class="op">[</span><span class="st">"CD14 Mono"</span><span class="op">]</span>,</span>
 <span>  outputDir  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/paste.html" class="external-link">paste0</a></span><span class="op">(</span><span class="va">out_dir</span>, <span class="st">"/"</span><span class="op">)</span>,</span>
@@ -819,7 +843,7 @@ plot of chunk wordclouds-include
 <p><code><a href="../reference/write_cluster_results.html">write_cluster_results()</a></code> returns every term in the same
 cluster as a term of interest. Here, the module containing the most
 connected term:</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">top_term</span> <span class="op">&lt;-</span> <span class="va">net</span><span class="op">$</span><span class="va">go_term_df</span><span class="op">$</span><span class="va">go_term</span><span class="op">[</span><span class="fu"><a href="https://rdrr.io/r/base/which.min.html" class="external-link">which.max</a></span><span class="op">(</span><span class="va">net</span><span class="op">$</span><span class="va">go_term_df</span><span class="op">$</span><span class="va">degree</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">top_term</span></span>
 <span><span class="co">#&gt; [1] "defense response to virus"</span></span>
@@ -906,7 +930,7 @@ connected term:</p>
 and down-regulated genes, and a network is built for each direction.
 This keeps a smaller set of down-regulated genes from being drowned out
 by the up-regulated ones.</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">go_split</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/run_go_ora.html">run_go_ora</a></span><span class="op">(</span></span>
 <span>  de_list             <span class="op">=</span> <span class="va">de_results</span><span class="op">[</span><span class="st">"CD14 Mono"</span><span class="op">]</span>,</span>
 <span>  org_db              <span class="op">=</span> <span class="va">org.Hs.eg.db</span>,</span>
@@ -925,8 +949,8 @@ by the up-regulated ones.</p>
 <span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">net_split</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "CD14 Mono_up"   "CD14 Mono_down"</span></span></code></pre></div>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">net_split</span><span class="op">[[</span><span class="st">"CD14 Mono_up"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">plots</span><span class="op">$</span><span class="va">themes</span></span></code></pre></div>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_network.html">plot_network</a></span><span class="op">(</span><span class="va">net_split</span><span class="op">[[</span><span class="st">"CD14 Mono_up"</span><span class="op">]</span><span class="op">]</span>, <span class="st">"themes"</span><span class="op">)</span></span></code></pre></div>
 <div class="figure">
 <img src="figures/ifnb-split-up-1.png" alt="plot of chunk split-up" width="100%"><p class="caption">
 plot of chunk split-up
@@ -942,7 +966,7 @@ merged into two large clusters.</p>
 <h2 id="files-written">7. Files written<a class="anchor" aria-label="anchor" href="#files-written"></a>
 </h2>
 <p>Everything the workflow saved to disk:</p>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">files</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.files.html" class="external-link">list.files</a></span><span class="op">(</span><span class="va">out_dir</span>, recursive <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">files</span><span class="op">[</span><span class="op">!</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grepl</a></span><span class="op">(</span><span class="st">"^default/"</span>, <span class="va">files</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="co">#&gt;  [1] "DE/B_DE_Results.csv"                                              </span></span>
@@ -960,7 +984,7 @@ merged into two large clusters.</p>
 <span><span class="co">#&gt; [13] "STIM_vs_CTRL/networks/B-cluster-stats.csv"                        </span></span>
 <span><span class="co">#&gt; [14] "STIM_vs_CTRL/networks/B-cluster-themes.csv"                       </span></span>
 <span><span class="co">#&gt; [15] "STIM_vs_CTRL/networks/B-clustered-leiden.png"                     </span></span>
-<span><span class="co">#&gt; [16] "STIM_vs_CTRL/networks/B-plain.png"                                </span></span>
+<span><span class="co">#&gt; [16] "STIM_vs_CTRL/networks/B-regulation.png"                           </span></span>
 <span><span class="co">#&gt; [17] "STIM_vs_CTRL/networks/B-themes.png"                               </span></span>
 <span><span class="co">#&gt; [18] "STIM_vs_CTRL/networks/B-zscore.png"                               </span></span>
 <span><span class="co">#&gt; [19] "STIM_vs_CTRL/networks/B_network_summary.csv"                      </span></span>
@@ -968,7 +992,7 @@ merged into two large clusters.</p>
 <span><span class="co">#&gt; [21] "STIM_vs_CTRL/networks/CD14_Mono-cluster-stats.csv"                </span></span>
 <span><span class="co">#&gt; [22] "STIM_vs_CTRL/networks/CD14_Mono-cluster-themes.csv"               </span></span>
 <span><span class="co">#&gt; [23] "STIM_vs_CTRL/networks/CD14_Mono-clustered-leiden.png"             </span></span>
-<span><span class="co">#&gt; [24] "STIM_vs_CTRL/networks/CD14_Mono-plain.png"                        </span></span>
+<span><span class="co">#&gt; [24] "STIM_vs_CTRL/networks/CD14_Mono-regulation.png"                   </span></span>
 <span><span class="co">#&gt; [25] "STIM_vs_CTRL/networks/CD14_Mono-themes.png"                       </span></span>
 <span><span class="co">#&gt; [26] "STIM_vs_CTRL/networks/CD14_Mono-zscore.png"                       </span></span>
 <span><span class="co">#&gt; [27] "STIM_vs_CTRL/networks/CD14_Mono_all_clusters_wordclouds.png"      </span></span>
@@ -977,7 +1001,7 @@ merged into two large clusters.</p>
 <span><span class="co">#&gt; [30] "STIM_vs_CTRL/networks/CD4_Naive_T-cluster-stats.csv"              </span></span>
 <span><span class="co">#&gt; [31] "STIM_vs_CTRL/networks/CD4_Naive_T-cluster-themes.csv"             </span></span>
 <span><span class="co">#&gt; [32] "STIM_vs_CTRL/networks/CD4_Naive_T-clustered-leiden.png"           </span></span>
-<span><span class="co">#&gt; [33] "STIM_vs_CTRL/networks/CD4_Naive_T-plain.png"                      </span></span>
+<span><span class="co">#&gt; [33] "STIM_vs_CTRL/networks/CD4_Naive_T-regulation.png"                 </span></span>
 <span><span class="co">#&gt; [34] "STIM_vs_CTRL/networks/CD4_Naive_T-themes.png"                     </span></span>
 <span><span class="co">#&gt; [35] "STIM_vs_CTRL/networks/CD4_Naive_T-zscore.png"                     </span></span>
 <span><span class="co">#&gt; [36] "STIM_vs_CTRL/networks/CD4_Naive_T_network_summary.csv"            </span></span>
@@ -985,7 +1009,7 @@ merged into two large clusters.</p>
 <span><span class="co">#&gt; [38] "STIM_vs_CTRL_split/networks/CD14_Mono_down-cluster-stats.csv"     </span></span>
 <span><span class="co">#&gt; [39] "STIM_vs_CTRL_split/networks/CD14_Mono_down-cluster-themes.csv"    </span></span>
 <span><span class="co">#&gt; [40] "STIM_vs_CTRL_split/networks/CD14_Mono_down-clustered-leiden.png"  </span></span>
-<span><span class="co">#&gt; [41] "STIM_vs_CTRL_split/networks/CD14_Mono_down-plain.png"             </span></span>
+<span><span class="co">#&gt; [41] "STIM_vs_CTRL_split/networks/CD14_Mono_down-regulation.png"        </span></span>
 <span><span class="co">#&gt; [42] "STIM_vs_CTRL_split/networks/CD14_Mono_down-themes.png"            </span></span>
 <span><span class="co">#&gt; [43] "STIM_vs_CTRL_split/networks/CD14_Mono_down-zscore.png"            </span></span>
 <span><span class="co">#&gt; [44] "STIM_vs_CTRL_split/networks/CD14_Mono_down_network_summary.csv"   </span></span>
@@ -993,7 +1017,7 @@ merged into two large clusters.</p>
 <span><span class="co">#&gt; [46] "STIM_vs_CTRL_split/networks/CD14_Mono_up-cluster-stats.csv"       </span></span>
 <span><span class="co">#&gt; [47] "STIM_vs_CTRL_split/networks/CD14_Mono_up-cluster-themes.csv"      </span></span>
 <span><span class="co">#&gt; [48] "STIM_vs_CTRL_split/networks/CD14_Mono_up-clustered-leiden.png"    </span></span>
-<span><span class="co">#&gt; [49] "STIM_vs_CTRL_split/networks/CD14_Mono_up-plain.png"               </span></span>
+<span><span class="co">#&gt; [49] "STIM_vs_CTRL_split/networks/CD14_Mono_up-regulation.png"          </span></span>
 <span><span class="co">#&gt; [50] "STIM_vs_CTRL_split/networks/CD14_Mono_up-themes.png"              </span></span>
 <span><span class="co">#&gt; [51] "STIM_vs_CTRL_split/networks/CD14_Mono_up-zscore.png"              </span></span>
 <span><span class="co">#&gt; [52] "STIM_vs_CTRL_split/networks/CD14_Mono_up_network_summary.csv"</span></span></code></pre></div>
@@ -1001,7 +1025,7 @@ merged into two large clusters.</p>
 <div class="section level2">
 <h2 id="session-information">Session information<a class="anchor" aria-label="anchor" href="#session-information"></a>
 </h2>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.4.1 (2024-06-14)</span></span>
 <span><span class="co">#&gt; Platform: aarch64-apple-darwin20</span></span>

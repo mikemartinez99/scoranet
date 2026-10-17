@@ -51,11 +51,11 @@ test_that("generate_overlap_network returns cluster themes and a themes plot", {
 
   res <- suppressMessages(generate_overlap_network(
     results_set, collection, unlist(collection),
-    outdir = NULL, plot_to_screen = FALSE, theme_label = "hub"
+    outdir = NULL
   ))
 
   expect_equal(nrow(res$cluster_themes), length(unique(res$go_term_df$cluster)))
-  expect_s3_class(res$plots$themes, "ggplot")
+  expect_s3_class(plot_network(res, "themes", label_by = "hub"), "ggplot")
   expect_true(any(grepl("collagen", res$cluster_themes$keywords)))
 })
 
