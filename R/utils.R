@@ -22,3 +22,15 @@
   "#38B7FF", "#FF9B4D", "#E0AFCA", "#A3A3A3", "#8A5F00", "#1674A9", "#005F45",
   "#AA9F0D", "#00446B", "#803800", "#8D3666", "#3D3D3D"
 )
+
+# Evaluate `expr` with a fixed random seed without changing the session's random
+# state. `seed = NULL` evaluates `expr` without seeding.
+.with_optional_seed <- function(seed, expr) {
+  if (is.null(seed)) return(expr)
+  withr::with_seed(seed, expr)
+}
+
+# `x` unless it is NULL, otherwise `y` (base R's `%||%` needs R >= 4.4).
+.or_default <- function(x, y) {
+  if (is.null(x)) y else x
+}

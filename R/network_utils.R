@@ -23,9 +23,18 @@
 #' @param overlap_threshold Numeric \code{[0, 1]}. Minimum Jaccard overlap
 #'   between two GO term gene sets required to draw an edge. Default
 #'   \code{0.1}.
-#' @param leiden_resolution Numeric. Resolution parameter passed to
-#'   \code{igraph::cluster_leiden}. Lower values produce fewer, larger
-#'   communities. Default \code{0.03}.
+#' @param leiden_resolution Numeric. Resolution for Leiden clustering. With
+#'   the default modularity objective, values around 1 are standard; higher
+#'   values give more, smaller clusters. Use \code{\link{plot_leiden_sweep}} to
+#'   choose a value. Default \code{1}.
+#' @param objective_function Character. Leiden objective passed to
+#'   \code{igraph::cluster_leiden}: \code{"modularity"} (default; resolution
+#'   is comparable across networks) or \code{"CPM"} (constant Potts model;
+#'   resolution acts as an edge-density cutoff and needs much smaller values,
+#'   e.g. 0.03).
+#' @param seed Integer seed for Leiden clustering and the plot layout, so
+#'   results are reproducible. It does not change the random state of your
+#'   session. \code{NULL} disables seeding. Default \code{1234}.
 #' @param split_direction Logical. Set to \code{TRUE} when \code{go_list} comes
 #'   from \code{run_go_ora(split_direction = TRUE)}. Each direction is then
 #'   built from its own results and only the DEGs in that direction
@@ -57,7 +66,9 @@ run_comparison_networks <- function(
     comp_label,
     base_outdir,
     overlap_threshold = 0.1,
-    leiden_resolution = 0.03,
+    leiden_resolution = 1,
+    objective_function = c("modularity", "CPM"),
+    seed = 1234,
     split_direction = FALSE,
     zscore_threshold = 1
 ) {
@@ -106,6 +117,8 @@ run_comparison_networks <- function(
       file_stem         = file_stem,
       overlap_threshold = overlap_threshold,
       leiden_resolution = leiden_resolution,
+      objective_function = objective_function,
+      seed              = seed,
       outdir            = net_outdir,
       ident1            = idents[1],
       ident2            = idents[2],
@@ -276,8 +289,18 @@ build_network_inputs <- function(ego, de_df) {
 #'   \code{"CD206_Car_vs_Bleo_Fibroblast_1"}).
 #' @param overlap_threshold Numeric \code{[0, 1]}. Jaccard coefficient below
 #'   which edges are set to zero. Default \code{0.1}.
-#' @param leiden_resolution Numeric. Resolution parameter for
-#'   \code{igraph::cluster_leiden}. Default \code{0.03}.
+#' @param leiden_resolution Numeric. Resolution for Leiden clustering. With
+#'   the default modularity objective, values around 1 are standard; higher
+#'   values give more, smaller clusters. Use \code{\link{plot_leiden_sweep}} to
+#'   choose a value. Default \code{1}.
+#' @param objective_function Character. Leiden objective passed to
+#'   \code{igraph::cluster_leiden}: \code{"modularity"} (default; resolution
+#'   is comparable across networks) or \code{"CPM"} (constant Potts model;
+#'   resolution acts as an edge-density cutoff and needs much smaller values,
+#'   e.g. 0.03).
+#' @param seed Integer seed for Leiden clustering and the plot layout, so
+#'   results are reproducible. It does not change the random state of your
+#'   session. \code{NULL} disables seeding. Default \code{1234}.
 #' @param outdir Character path to the output directory. If \code{NULL},
 #'   no files are written. The directory is created if it does not exist.
 #' @param plot_to_screen Logical. If \code{TRUE} (default), the Leiden-
@@ -293,7 +316,8 @@ build_network_inputs <- function(ego, de_df) {
 #'   and \code{"Upregulated in <ident2>"}. If \code{NULL} (default), they are
 #'   parsed from \code{collection_name} around \code{"_vs_"}.
 #'
-#' @return A list with seven elements:
+#' @return \code{NULL} (with a message) if no two terms overlap at
+#'   \code{overlap_threshold}. Otherwise a list with the following elements:
 #' \describe{
 #'   \item{network}{An \code{igraph} graph object with vertex attributes
 #'     \code{fc}, \code{regulation}, \code{size}, \code{cluster},
@@ -310,7 +334,10 @@ build_network_inputs <- function(ego, de_df) {
 #'     \code{results_set} has no z-score columns.}
 #'   \item{cluster_stats}{Data frame with columns \code{cluster},
 #'     \code{avg_degree}, and \code{n_terms}.}
-#'   \item{leiden_resolution}{The resolution value used.}
+#'   \item{leiden_resolution, objective_function, overlap_threshold, seed}{The
+#'     settings used.}
+#'   \item{term_genes}{Named list: for each node (GO term), the DE genes it
+#'     contains. Used by \code{\link{plot_driver_genes}}.}
 #'   \item{plots}{A list of \code{ggplot} objects built with \pkg{ggraph}:
 #'     \code{plain} (nodes filled by direction: up, down, or mixed),
 #'     \code{leiden} (nodes filled by Leiden cluster, with the cluster legend
@@ -354,7 +381,9 @@ generate_overlap_network <- function(
     de_genes,
     collection_name = "network",
     overlap_threshold = 0.1,
-    leiden_resolution = 0.03,
+    leiden_resolution = 1,
+    objective_function = c("modularity", "CPM"),
+    seed = 1234,
     outdir = NULL,
     plot_to_screen = TRUE,
     file_stem = NULL,
@@ -362,6 +391,8 @@ generate_overlap_network <- function(
     ident2 = NULL,
     zscore_threshold = 1
 ) {
+
+  objective_function <- match.arg(objective_function)
 
   parts <- strsplit(collection_name, "_vs_")[[1]]
   if (is.null(ident1)) {
@@ -428,16 +459,25 @@ generate_overlap_network <- function(
   igraph::V(network)$size <- log(sapply(collection_sub[igraph::V(network)$name], length)) * 2
 
   isolates <- igraph::degree(network) == 0
+  if (any(isolates)) {
+    cli::cli_alert_info(
+      "Dropped {sum(isolates)} of {length(isolates)} term{?s} with no overlap >= {overlap_threshold} (isolates)."
+    )
+  }
   network <- igraph::delete_vertices(network, isolates)
 
+  # Isolates are removed, so any remaining node has an edge: fewer than 2 nodes
+  # means no term overlaps another at this threshold.
   if (igraph::vcount(network) < 2) {
-    warning(paste("Network too sparse after filtering:", collection_name))
+    cli::cli_alert_warning(
+      "No network for {.val {collection_name}}: no terms overlap at >= {overlap_threshold}."
+    )
+    return(NULL)
   }
 
   igraph::E(network)$width <- igraph::E(network)$weight
 
-  ceb <- igraph::cluster_leiden(network, weights = igraph::E(network)$weight,
-                                resolution_parameter = leiden_resolution)
+  ceb <- .run_leiden(network, leiden_resolution, objective_function, seed)
   mem <- igraph::membership(ceb)
   igraph::V(network)$cluster <- as.integer(mem)
 
@@ -473,6 +513,7 @@ generate_overlap_network <- function(
     "Edges"             = igraph::ecount(network),
     "Clusters"          = n_clusters,
     "Leiden resolution" = leiden_resolution,
+    "Leiden objective"  = objective_function,
     "Overlap threshold" = overlap_threshold
   ))
   cli::cli_h3("Average degree per cluster")
@@ -509,8 +550,7 @@ generate_overlap_network <- function(
     )
   }
 
-  set.seed(1234)
-  lo <- igraph::layout_with_fr(network)
+  lo <- .with_optional_seed(seed, igraph::layout_with_fr(network))
 
   plots <- list(plain = NULL, leiden = NULL, zscore = NULL)
   if (igraph::vcount(network) > 0) {
@@ -553,8 +593,24 @@ generate_overlap_network <- function(
     go_term_df       = go_term_df,
     cluster_stats    = cluster_stats,
     leiden_resolution = leiden_resolution,
+    objective_function = objective_function,
+    overlap_threshold = overlap_threshold,
+    seed             = seed,
+    term_genes       = collection_sub[igraph::V(network)$name],
     plots            = plots
   )
+}
+
+# Leiden clustering with the package's settings: edge weights, iteration until
+# the partition is stable (n_iterations = -1), and an optional seed.
+.run_leiden <- function(network, resolution, objective_function, seed) {
+  .with_optional_seed(seed, igraph::cluster_leiden(
+    network,
+    objective_function = objective_function,
+    weights = igraph::E(network)$weight,
+    resolution = resolution,
+    n_iterations = -1
+  ))
 }
 
 # Build a ggraph plot of a GO-term overlap network. Edge width shows Jaccard
@@ -650,7 +706,7 @@ generate_overlap_network <- function(
       try(system2("chflags", c("nohidden", file)), silent = TRUE)
     }
     cli::cli_alert_success(
-      "Saved network PNG: {.file {normalizePath(file, winslash = '/', mustWork = FALSE)}} (exists={file.exists(file)})"
+      "Saved PNG: {.file {normalizePath(file, winslash = '/', mustWork = FALSE)}} (exists={file.exists(file)})"
     )
   }, error = function(e) {
     cli::cli_alert_danger("Failed to save {.file {file}}: {conditionMessage(e)}")

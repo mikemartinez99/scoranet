@@ -10,7 +10,9 @@ generate_overlap_network(
   de_genes,
   collection_name = "network",
   overlap_threshold = 0.1,
-  leiden_resolution = 0.03,
+  leiden_resolution = 1,
+  objective_function = c("modularity", "CPM"),
+  seed = 1234,
   outdir = NULL,
   plot_to_screen = TRUE,
   file_stem = NULL,
@@ -43,8 +45,20 @@ output. Typically formatted as
 \item{overlap_threshold}{Numeric \code{[0, 1]}. Jaccard coefficient below
 which edges are set to zero. Default \code{0.1}.}
 
-\item{leiden_resolution}{Numeric. Resolution parameter for
-\code{igraph::cluster_leiden}. Default \code{0.03}.}
+\item{leiden_resolution}{Numeric. Resolution for Leiden clustering. With
+the default modularity objective, values around 1 are standard; higher
+values give more, smaller clusters. Use \code{\link{plot_leiden_sweep}} to
+choose a value. Default \code{1}.}
+
+\item{objective_function}{Character. Leiden objective passed to
+\code{igraph::cluster_leiden}: \code{"modularity"} (default; resolution
+is comparable across networks) or \code{"CPM"} (constant Potts model;
+resolution acts as an edge-density cutoff and needs much smaller values,
+e.g. 0.03).}
+
+\item{seed}{Integer seed for Leiden clustering and the plot layout, so
+results are reproducible. It does not change the random state of your
+session. \code{NULL} disables seeding. Default \code{1234}.}
 
 \item{outdir}{Character path to the output directory. If \code{NULL},
 no files are written. The directory is created if it does not exist.}
@@ -66,7 +80,8 @@ direction z-score is at least this value, \code{"down"} when it is at
 most minus this value, and \code{"mixed"} otherwise. Default \code{1}.}
 }
 \value{
-A list with seven elements:
+\code{NULL} (with a message) if no two terms overlap at
+\code{overlap_threshold}. Otherwise a list with the following elements:
 \describe{
 \item{network}{An \code{igraph} graph object with vertex attributes
 \code{fc}, \code{regulation}, \code{size}, \code{cluster},
@@ -83,7 +98,10 @@ coefficients (before thresholding).}
 \code{results_set} has no z-score columns.}
 \item{cluster_stats}{Data frame with columns \code{cluster},
 \code{avg_degree}, and \code{n_terms}.}
-\item{leiden_resolution}{The resolution value used.}
+\item{leiden_resolution, objective_function, overlap_threshold, seed}{The
+settings used.}
+\item{term_genes}{Named list: for each node (GO term), the DE genes it
+contains. Used by \code{\link{plot_driver_genes}}.}
 \item{plots}{A list of \code{ggplot} objects built with \pkg{ggraph}:
 \code{plain} (nodes filled by direction: up, down, or mixed),
 \code{leiden} (nodes filled by Leiden cluster, with the cluster legend

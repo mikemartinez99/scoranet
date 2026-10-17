@@ -36,7 +36,8 @@ test_that("generate_overlap_network returns expected list structure", {
   expect_type(result, "list")
   expect_named(result, c("network", "clustering", "overlap_matrix",
                           "go_term_df", "cluster_stats", "leiden_resolution",
-                          "plots"))
+                          "objective_function", "overlap_threshold", "seed",
+                          "term_genes", "plots"))
 })
 
 test_that("generate_overlap_network produces igraph object", {
@@ -274,4 +275,32 @@ test_that("generate_overlap_network falls back to fold-change sign without z-sco
   expect_true(all(is.na(res$go_term_df$zscore)))
   expect_null(res$plots$zscore)
   expect_s3_class(res$plots$plain, "ggplot")
+})
+
+test_that("generate_overlap_network clustering is reproducible and leaves the session seed alone", {
+  inp <- make_test_inputs(10)
+  run <- function() generate_overlap_network(
+    inp$results_set, inp$collection, inp$de_genes,
+    outdir = NULL, plot_to_screen = FALSE
+  )$go_term_df$cluster
+
+  set.seed(1); a <- run()
+  set.seed(999); b <- run()
+  expect_identical(a, b)
+
+  set.seed(42); before <- stats::runif(1)
+  set.seed(42); invisible(run()); after <- stats::runif(1)
+  expect_identical(before, after)
+})
+
+test_that("generate_overlap_network returns NULL when no terms overlap", {
+  collection <- list(a = c("G1", "G2"), b = c("G3", "G4"), c = c("G5", "G6"))
+  results_set <- data.frame(avg_log2FC = c(1, -1, 1), row.names = names(collection))
+
+  res <- suppressMessages(generate_overlap_network(
+    results_set, collection, unlist(collection),
+    outdir = NULL, plot_to_screen = FALSE
+  ))
+
+  expect_null(res)
 })

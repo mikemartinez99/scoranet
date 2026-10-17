@@ -26,11 +26,12 @@ Imports:
     ggplot2,
     ggraph,
     ggwordcloud,
-    igraph,
+    igraph (>= 2.1.0),
     patchwork,
     scales,
     Seurat,
-    stringr
+    stringr,
+    withr
 Suggests:
     org.Mm.eg.db,
     org.Hs.eg.db,

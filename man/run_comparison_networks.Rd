@@ -10,7 +10,9 @@ run_comparison_networks(
   comp_label,
   base_outdir,
   overlap_threshold = 0.1,
-  leiden_resolution = 0.03,
+  leiden_resolution = 1,
+  objective_function = c("modularity", "CPM"),
+  seed = 1234,
   split_direction = FALSE,
   zscore_threshold = 1
 )
@@ -37,9 +39,20 @@ sub-directory \code{<comp_label>/networks/} is created automatically.}
 between two GO term gene sets required to draw an edge. Default
 \code{0.1}.}
 
-\item{leiden_resolution}{Numeric. Resolution parameter passed to
-\code{igraph::cluster_leiden}. Lower values produce fewer, larger
-communities. Default \code{0.03}.}
+\item{leiden_resolution}{Numeric. Resolution for Leiden clustering. With
+the default modularity objective, values around 1 are standard; higher
+values give more, smaller clusters. Use \code{\link{plot_leiden_sweep}} to
+choose a value. Default \code{1}.}
+
+\item{objective_function}{Character. Leiden objective passed to
+\code{igraph::cluster_leiden}: \code{"modularity"} (default; resolution
+is comparable across networks) or \code{"CPM"} (constant Potts model;
+resolution acts as an edge-density cutoff and needs much smaller values,
+e.g. 0.03).}
+
+\item{seed}{Integer seed for Leiden clustering and the plot layout, so
+results are reproducible. It does not change the random state of your
+session. \code{NULL} disables seeding. Default \code{1234}.}
 
 \item{split_direction}{Logical. Set to \code{TRUE} when \code{go_list} comes
 from \code{run_go_ora(split_direction = TRUE)}. Each direction is then
