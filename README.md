@@ -81,7 +81,6 @@ For a guide to reading the diagnostic figures, see [DIAGNOSTICS.md](DIAGNOSTICS.
 
 **![Version](https://img.shields.io/badge/version-1.0.0-blue)** **![Release](https://img.shields.io/badge/Major-red)**
 *October 17th, 2026: "The network update"*<br>
-  - Renamed from **GDSCtools** to **scoranet** and focused the package on the DE → ORA → network workflow<br>
   - **run_cluster_de** returns DEGs and all tested genes per cluster, with explicit Seurat **FindMarkers** pre-filters and Seurat 5 support<br>
   - **run_go_ora** supports tested-gene universes, up/down split analysis, and optional term simplification<br>
   - **run_comparison_networks** builds seeded Leiden networks (modularity objective) with z-score direction calls<br>
