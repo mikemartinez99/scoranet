@@ -97,7 +97,7 @@ Parts of this package's code, tests, and documentation were developed with the a
 
 
 ## Citation
-If you use scoranet in your work, please cite: *citation coming soon*
+If you use scoranet in your work, please cite: https://dx.doi.org/10.17504/protocols.io.byl42edwzvo5/v1
 
 
 ## 📬 Contact
