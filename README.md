@@ -1,8 +1,6 @@
-# scoranet
-**Single-Cell Over-Representation Analysis NETworks**
+# Single-Cell Over-Representation Analysis NETworks (scoranet)
 
-*Clean, interpretable alternatives to traditional functional enrichment results at the single-cell cluster level.*
-
+*Identify themes in your single cell functional enrichment results in a clean, interpretable way!*
 
  <!-- badges: start -->
  ![status](https://img.shields.io/badge/status-in%20development-orange)
@@ -14,12 +12,7 @@
 
  <!-- badges: end -->
 
-
-> [!WARNING]
-> **🚧 In development:** functions and defaults may still change between versions.
-
 ---
-
 
 ![scoranet example outputs: direction z-score network, cluster-theme network, Leiden resolution sweep, and driver genes](man/figures/overview.png)
 
