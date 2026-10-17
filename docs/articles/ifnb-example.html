@@ -136,7 +136,7 @@ within each cell type and prints a short summary per cluster.</p>
 <span><span class="co">#&gt; * Up in CTRL: 374</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; i Running DE for "CD4 Naive T" (STIM vs CTRL)</span></span>
-<span><span class="co">#&gt; v Running DE for "CD4 Naive T" (STIM vs CTRL) [870ms]</span></span>
+<span><span class="co">#&gt; v Running DE for "CD4 Naive T" (STIM vs CTRL) [871ms]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; * Tested genes: 526</span></span>
 <span><span class="co">#&gt; * DEGs: 202</span></span>
@@ -144,7 +144,7 @@ within each cell type and prints a short summary per cluster.</p>
 <span><span class="co">#&gt; * Up in CTRL: 42</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; i Running DE for "B" (STIM vs CTRL)</span></span>
-<span><span class="co">#&gt; v Running DE for "B" (STIM vs CTRL) [618ms]</span></span>
+<span><span class="co">#&gt; v Running DE for "B" (STIM vs CTRL) [634ms]</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; * Tested genes: 812</span></span>
 <span><span class="co">#&gt; * DEGs: 263</span></span>
@@ -519,7 +519,8 @@ plot of chunk diag-sweep
 </div>
 <p>A good resolution sits on a plateau where the cluster count is
 steady, modularity is high, and stability (agreement between random
-seeds) is close to 1. Here the default resolution of 1 sits at the
+seeds, measured as the adjusted Rand index) is close to 1. Section 7
+defines each metric. Here the default resolution of 1 sits at the
 modularity peak with perfect stability, so we keep it. Modularity is
 modest because nearly every term in this network is part of one
 connected interferon response.</p>
@@ -800,7 +801,8 @@ between organisms</td>
 <div class="section level3">
 <h3 id="driver-genes">Driver genes<a class="anchor" aria-label="anchor" href="#driver-genes"></a>
 </h3>
-<p>Which genes is each cluster built on?</p>
+<p>Which genes is each cluster built on? A gene’s share is the fraction
+of the cluster’s terms that contain it (defined in Section 7).</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">dx</span><span class="op">$</span><span class="va">networks</span><span class="op">[[</span><span class="st">"CD14 Mono"</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">driver_genes</span></span></code></pre></div>
 <div class="figure">
@@ -987,7 +989,376 @@ down.</p>
 translation cluster in the combined network.</p>
 </div>
 <div class="section level2">
-<h2 id="files-written">7. Files written<a class="anchor" aria-label="anchor" href="#files-written"></a>
+<h2 id="reading-the-results">7. Reading the results<a class="anchor" aria-label="anchor" href="#reading-the-results"></a>
+</h2>
+<p>This section defines every quantity the workflow reports and every
+column in the files it writes.</p>
+<div class="section level3">
+<h3 id="how-the-network-is-built">How the network is built<a class="anchor" aria-label="anchor" href="#how-the-network-is-built"></a>
+</h3>
+<p><strong>Jaccard overlap.</strong> Each GO term is represented by its
+DE genes: the genes annotated to the term that are also in the DEG list.
+For two terms with DE gene sets
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>A</mi><annotation encoding="application/x-tex">A</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>B</mi><annotation encoding="application/x-tex">B</annotation></semantics></math>,
+the Jaccard overlap is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>J</mi><mo stretchy="false" form="prefix">(</mo><mi>A</mi><mo>,</mo><mi>B</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><mo stretchy="false" form="prefix">|</mo><mi>A</mi><mo>∩</mo><mi>B</mi><mo stretchy="false" form="prefix">|</mo></mrow><mrow><mo stretchy="false" form="prefix">|</mo><mi>A</mi><mo>∪</mo><mi>B</mi><mo stretchy="false" form="prefix">|</mo></mrow></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">J(A, B) = \frac{|A \cap B|}{|A \cup B|},</annotation></semantics></math></p>
+<p>the number of DE genes the terms share divided by the number of DE
+genes in either. It runs from 0 (no shared genes) to 1 (identical gene
+sets). For example, a term with DE genes {<em>ISG15</em>,
+<em>IFIT1</em>, <em>IFIT3</em>, <em>MX1</em>} and one with
+{<em>IFIT1</em>, <em>IFIT3</em>, <em>OAS1</em>} share 2 of 5 distinct
+genes, so
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>J</mi><mo>=</mo><mn>0.4</mn></mrow><annotation encoding="application/x-tex">J = 0.4</annotation></semantics></math>.</p>
+<p><strong>Edges.</strong> Two terms are connected when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>J</mi><mo>≥</mo></mrow><annotation encoding="application/x-tex">J \ge</annotation></semantics></math><code>overlap_threshold</code> (0.2 here), and the edge width shows
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>J</mi><annotation encoding="application/x-tex">J</annotation></semantics></math>.
+Terms with no edge at that threshold are <strong>isolates</strong> and
+are dropped from the network.</p>
+<p><strong>Node size</strong> grows with the number of DE genes in the
+term (on a log scale).</p>
+<p><strong>Degree</strong> is the number of other terms a term is
+connected to. High-degree terms are hubs: their genes overlap with many
+other terms, which is typical of broad parent terms such as “immune
+response”.</p>
+</div>
+<div class="section level3">
+<h3 id="direction-1">Direction<a class="anchor" aria-label="anchor" href="#direction-1"></a>
+</h3>
+<p>For each term, using only its DE genes:</p>
+<ul>
+<li>
+<code>n_up</code> and <code>n_down</code> are the numbers of genes
+with positive and negative log2 fold change (up in <code>STIM</code> and
+up in <code>CTRL</code> here).</li>
+<li>
+<code>avg_log2FC</code> and <code>median_log2FC</code> are the mean
+and median log2 fold change. The median is less affected by one gene
+with an extreme fold change.</li>
+<li>The <strong>direction z-score</strong> is
+<math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>=</mo><mfrac><mrow><msub><mi>n</mi><mrow><mi>u</mi><mi>p</mi></mrow></msub><mo>−</mo><msub><mi>n</mi><mrow><mi>d</mi><mi>o</mi><mi>w</mi><mi>n</mi></mrow></msub></mrow><msqrt><mrow><msub><mi>n</mi><mrow><mi>u</mi><mi>p</mi></mrow></msub><mo>+</mo><msub><mi>n</mi><mrow><mi>d</mi><mi>o</mi><mi>w</mi><mi>n</mi></mrow></msub></mrow></msqrt></mfrac><mi>.</mi></mrow><annotation encoding="application/x-tex">z = \frac{n_{up} - n_{down}}{\sqrt{n_{up} + n_{down}}}.</annotation></semantics></math>
+It combines how consistently the genes move with how many genes support
+it: 9 up and 1 down gives
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>=</mo><mn>2.5</mn></mrow><annotation encoding="application/x-tex">z = 2.5</annotation></semantics></math>;
+3 up and 2 down gives
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>=</mo><mn>0.45</mn></mrow><annotation encoding="application/x-tex">z = 0.45</annotation></semantics></math>;
+a single up gene gives
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>=</mo><mn>1</mn></mrow><annotation encoding="application/x-tex">z = 1</annotation></semantics></math>.</li>
+<li>
+<code>regulation</code> calls a term <code>up</code> when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>≥</mo></mrow><annotation encoding="application/x-tex">z \ge</annotation></semantics></math><code>zscore_threshold</code> (default 1), <code>down</code> when
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>z</mi><mo>≤</mo><mi>−</mi></mrow><annotation encoding="application/x-tex">z \le -</annotation></semantics></math><code>zscore_threshold</code>,
+and <code>mixed</code> otherwise.</li>
+</ul>
+<p>This direction z-score is not the same as the <code>zScore</code>
+column that <code>clusterProfiler</code> adds to the ORA results, which
+measures enrichment, not direction (see below).</p>
+</div>
+<div class="section level3">
+<h3 id="clustering">Clustering<a class="anchor" aria-label="anchor" href="#clustering"></a>
+</h3>
+<p><strong>Leiden clustering</strong> groups terms that are more densely
+connected to each other than to the rest of the network. Edge weights
+(<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>J</mi><annotation encoding="application/x-tex">J</annotation></semantics></math>)
+are used, so strongly overlapping terms pull harder.</p>
+<p><strong>Resolution</strong> sets how finely the network is split:
+higher values give more, smaller clusters.</p>
+<p><strong>Modularity</strong> scores how well a partition separates the
+network. It is the share of edge weight that falls within clusters,
+minus the share expected if edges were placed at random while keeping
+each term’s total edge weight. Values near 0 mean no better than random;
+values above about 0.3 indicate clear structure. The sweep always
+reports standard modularity (resolution 1), so it can be compared across
+resolutions.</p>
+<p><strong>Adjusted Rand index (ARI)</strong> measures how well two
+partitions of the same terms agree. It counts pairs of terms that both
+partitions put together, or both keep apart, and corrects for the
+agreement expected by chance. It is 1 when the partitions are identical
+and about 0 when they agree no more than random partitions would.
+<strong>Stability</strong> in the sweep is the mean ARI over every pair
+of random seeds at a resolution. A value of 1 means the clustering does
+not depend on the seed.</p>
+</div>
+<div class="section level3">
+<h3 id="cluster-themes-and-the-ratios-on-the-network">Cluster themes and the ratios on the network<a class="anchor" aria-label="anchor" href="#cluster-themes-and-the-ratios-on-the-network"></a>
+</h3>
+<p>Each cluster is labelled with up to two GO terms that its terms fall
+under in the GO hierarchy (its “ancestors”). A label such as</p>
+<blockquote>
+<p>viral process / response to type I interferon (12/16)</p>
+</blockquote>
+<p>means that 12 of the cluster’s 16 terms are one of these ancestors or
+a descendant of one. An ancestor is only used if it covers at least
+<code>theme_ancestor_min_share</code> of the cluster (default 15%) and
+has at most <code>theme_ancestor_max_size</code> descendant terms
+(default 1,000, to exclude very generic terms). Among those, ancestors
+are picked one at a time to cover as many still-uncovered terms as
+possible, weighted by how specific they are. When no ancestor qualifies,
+the label falls back to the hub term and says “(hub; no shared GO
+parent)”, which often means the cluster mixes unrelated terms.</p>
+<p>The other label styles (<code>label_by</code> in
+<code><a href="../reference/plot_network.html">plot_network()</a></code>) are:</p>
+<ul>
+<li>
+<code>keywords</code>: the most distinctive words in the cluster’s
+term names, down-weighting words common to all clusters.</li>
+<li>
+<code>phrase</code>: the top term name, after merging near-identical
+names.</li>
+<li>
+<code>hub</code>: the cluster’s highest-degree term.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="driver-genes-1">Driver genes<a class="anchor" aria-label="anchor" href="#driver-genes-1"></a>
+</h3>
+<p>For each cluster
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>c</mi><annotation encoding="application/x-tex">c</annotation></semantics></math>
+with
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>N</mi><mi>c</mi></msub><annotation encoding="application/x-tex">N_c</annotation></semantics></math>
+terms, a gene’s <strong>share</strong> is</p>
+<p><math display="block" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mtext mathvariant="normal">share</mtext><mo stretchy="false" form="prefix">(</mo><mi>g</mi><mo>,</mo><mi>c</mi><mo stretchy="false" form="postfix">)</mo><mo>=</mo><mfrac><mrow><msub><mi>n</mi><mrow><mi>t</mi><mi>e</mi><mi>r</mi><mi>m</mi><mi>s</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>g</mi><mo>,</mo><mi>c</mi><mo stretchy="false" form="postfix">)</mo></mrow><msub><mi>N</mi><mi>c</mi></msub></mfrac><mo>,</mo></mrow><annotation encoding="application/x-tex">\text{share}(g, c) = \frac{n_{terms}(g, c)}{N_c},</annotation></semantics></math></p>
+<p>where
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><msub><mi>n</mi><mrow><mi>t</mi><mi>e</mi><mi>r</mi><mi>m</mi><mi>s</mi></mrow></msub><mo stretchy="false" form="prefix">(</mo><mi>g</mi><mo>,</mo><mi>c</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">n_{terms}(g, c)</annotation></semantics></math>
+is the number of the cluster’s terms whose DE genes include
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>g</mi><annotation encoding="application/x-tex">g</annotation></semantics></math>.
+The genes with the highest
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><msub><mi>n</mi><mrow><mi>t</mi><mi>e</mi><mi>r</mi><mi>m</mi><mi>s</mi></mrow></msub><annotation encoding="application/x-tex">n_{terms}</annotation></semantics></math>
+are the cluster’s drivers (ties are broken by larger
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><msub><mrow><mi mathvariant="normal">log</mi><mo>⁡</mo></mrow><mn>2</mn></msub><mi>F</mi><mi>C</mi><mo stretchy="false" form="prefix">|</mo></mrow><annotation encoding="application/x-tex">|\log_2 FC|</annotation></semantics></math>).
+Dot colour is the gene’s log2 fold change, and dot size spans the range
+of shares shown, so read exact values from the legend.</p>
+<p>A high share means a gene is annotated to most of the cluster’s
+terms, so the cluster’s theme rests on it. It does not mean the gene is
+specific to that cluster: broadly annotated genes such as <em>IL1B</em>
+can drive several clusters, and in a two-term cluster every shared gene
+has a share of 100%.</p>
+</div>
+<div class="section level3">
+<h3 id="output-files">Output files<a class="anchor" aria-label="anchor" href="#output-files"></a>
+</h3>
+<div class="section level4">
+<h4 id="differential-expression-de">Differential expression (<code>DE/</code>)<a class="anchor" aria-label="anchor" href="#differential-expression-de"></a>
+</h4>
+<p><code>&lt;cell type&gt;_DE_Results.csv</code> holds the DEGs and
+<code>&lt;cell type&gt;_tested_genes.csv</code> every gene
+<code><a href="https://satijalab.org/seurat/reference/FindMarkers.html" class="external-link">FindMarkers()</a></code> tested. Columns:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Column</th>
+<th>Meaning</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>p_val</code></td>
+<td>Unadjusted p-value (Wilcoxon rank-sum test by default)</td>
+</tr>
+<tr class="even">
+<td><code>avg_log2FC</code></td>
+<td>log2 fold change of mean expression, <code>ident1</code> vs
+<code>ident2</code>; positive = higher in <code>ident1</code>
+</td>
+</tr>
+<tr class="odd">
+<td>
+<code>pct.1</code>, <code>pct.2</code>
+</td>
+<td>Fraction of cells expressing the gene in <code>ident1</code> and
+<code>ident2</code>
+</td>
+</tr>
+<tr class="even">
+<td><code>p_val_adj</code></td>
+<td>Bonferroni-adjusted p-value (over all genes in the dataset)</td>
+</tr>
+<tr class="odd">
+<td>
+<code>gene</code>, <code>cluster</code>,
+<code>comparison</code>
+</td>
+<td>Gene symbol, cell type, and
+<code>"&lt;ident1&gt;_vs_&lt;ident2&gt;"</code>
+</td>
+</tr>
+<tr class="even">
+<td><code>res</code></td>
+<td>DEGs only: <code>"Upregulated in &lt;ident1&gt;"</code> or
+<code>"Upregulated in &lt;ident2&gt;"</code>
+</td>
+</tr>
+</tbody>
+</table>
+<p>A gene is a DEG when <code>p_val_adj</code>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo>≤</mo><annotation encoding="application/x-tex">\le</annotation></semantics></math><code>padj_thresh</code> (0.05) and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mo stretchy="false" form="prefix">|</mo><annotation encoding="application/x-tex">|</annotation></semantics></math><code>avg_log2FC</code><math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">|</mo><mo>&gt;</mo></mrow><annotation encoding="application/x-tex">| &gt;</annotation></semantics></math><code>logfc_thresh</code> (0.5).</p>
+</div>
+<div class="section level4">
+<h4 id="go-over-representation-ora">GO over-representation (<code>ORA/</code>)<a class="anchor" aria-label="anchor" href="#go-over-representation-ora"></a>
+</h4>
+<p><code>&lt;cell type&gt;_GO_ORA_Results.csv</code> holds one row per
+enriched GO term:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Column</th>
+<th>Meaning</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>
+<code>ID</code>, <code>Description</code>
+</td>
+<td>GO ID and term name</td>
+</tr>
+<tr class="even">
+<td><code>GeneRatio</code></td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mi>/</mi><mi>n</mi></mrow><annotation encoding="application/x-tex">k/n</annotation></semantics></math>:
+DEGs in the term / DEGs annotated to any tested GO term</td>
+</tr>
+<tr class="odd">
+<td><code>BgRatio</code></td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>M</mi><mi>/</mi><mi>N</mi></mrow><annotation encoding="application/x-tex">M/N</annotation></semantics></math>:
+background genes in the term / background genes annotated to any tested
+GO term</td>
+</tr>
+<tr class="even">
+<td><code>RichFactor</code></td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mi>k</mi><mi>/</mi><mi>M</mi></mrow><annotation encoding="application/x-tex">k/M</annotation></semantics></math>:
+the fraction of the term’s background genes that are DEGs</td>
+</tr>
+<tr class="odd">
+<td><code>FoldEnrichment</code></td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mrow><mo stretchy="false" form="prefix">(</mo><mi>k</mi><mi>/</mi><mi>n</mi><mo stretchy="false" form="postfix">)</mo><mi>/</mi><mo stretchy="false" form="prefix">(</mo><mi>M</mi><mi>/</mi><mi>N</mi><mo stretchy="false" form="postfix">)</mo></mrow><annotation encoding="application/x-tex">(k/n) / (M/N)</annotation></semantics></math>:
+how many times more often the term appears among DEGs than in the
+background</td>
+</tr>
+<tr class="even">
+<td><code>zScore</code></td>
+<td>Enrichment z-score from <code>clusterProfiler</code>: how far
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
+is above the count expected by chance, in standard deviations. Not the
+direction z-score</td>
+</tr>
+<tr class="odd">
+<td><code>pvalue</code></td>
+<td>One-sided hypergeometric test p-value</td>
+</tr>
+<tr class="even">
+<td><code>p.adjust</code></td>
+<td>Benjamini-Hochberg adjusted p-value; terms with
+<code>p.adjust</code> &lt; 0.05 enter the network</td>
+</tr>
+<tr class="odd">
+<td><code>qvalue</code></td>
+<td>Storey q-value</td>
+</tr>
+<tr class="even">
+<td><code>geneID</code></td>
+<td>The term’s DEGs, separated by <code>/</code>
+</td>
+</tr>
+<tr class="odd">
+<td><code>Count</code></td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>,
+the number of DEGs in the term</td>
+</tr>
+<tr class="even">
+<td>
+<code>geneRatio_num</code>, <code>geneRatio_den</code>
+</td>
+<td>
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>k</mi><annotation encoding="application/x-tex">k</annotation></semantics></math>
+and
+<math display="inline" xmlns="http://www.w3.org/1998/Math/MathML"><semantics><mi>n</mi><annotation encoding="application/x-tex">n</annotation></semantics></math>
+as numbers, added by <code><a href="../reference/write_go.html">write_go()</a></code>
+</td>
+</tr>
+</tbody>
+</table>
+<p>The background is every gene tested in the cell type when
+<code>use_tested_universe = TRUE</code>. Only GO terms with 5 to 300
+annotated background genes are tested.
+<code>GO_ORA_QC_summary.csv</code> lists, for each cell type, how many
+GO terms were <code>tested</code>, how many were <code>retained</code>
+as significant, and the proportion (<code>prop</code>); with
+<code>simplify = TRUE</code> it adds <code>after_simplify</code>, the
+count left after redundant terms are merged.</p>
+</div>
+<div class="section level4">
+<h4 id="networks-comparisonnetworks">Networks (<code>&lt;comparison&gt;/networks/</code>)<a class="anchor" aria-label="anchor" href="#networks-comparisonnetworks"></a>
+</h4>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>File</th>
+<th>One row per</th>
+<th>Columns</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>&lt;cell type&gt;_network_summary.csv</code></td>
+<td>metric</td>
+<td>
+<code>nodes</code>, <code>edges</code> and <code>clusters</code>
+counts</td>
+</tr>
+<tr class="even">
+<td><code>&lt;cell type&gt;-cluster-stats.csv</code></td>
+<td>cluster</td>
+<td>
+<code>cluster</code>; <code>avg_degree</code>, the mean degree of
+its terms (how densely connected it is); <code>n_terms</code>
+</td>
+</tr>
+<tr class="odd">
+<td><code>&lt;cell type&gt;-cluster-membership.csv</code></td>
+<td>GO term</td>
+<td>
+<code>go_term</code>, <code>cluster</code>, <code>degree</code>,
+<code>regulation</code>, <code>avg_log2FC</code>,
+<code>median_log2FC</code>, <code>n_up</code>, <code>n_down</code>,
+<code>zscore</code> (direction), <code>go_id</code>,
+<code>leiden_resolution</code>, and <code>genes</code> (the term’s DE
+genes, separated by <code>/</code>). Sorted by cluster, then degree</td>
+</tr>
+<tr class="even">
+<td><code>&lt;cell type&gt;-cluster-themes.csv</code></td>
+<td>cluster</td>
+<td>
+<code>cluster</code>, <code>n_terms</code>, <code>ancestor</code>
+(names joined by <code>/</code>), <code>ancestor_id</code>,
+<code>ancestor_n_covered</code> (the numerator in the plot labels),
+<code>keywords</code>, <code>phrase</code>, <code>hub</code>
+</td>
+</tr>
+</tbody>
+</table>
+<p><code>network_tables(net)</code> returns the same four tables in R.
+The PNG files are the four <code><a href="../reference/plot_network.html">plot_network()</a></code> types:
+<code>-regulation</code>, <code>-clustered-leiden</code>,
+<code>-zscore</code> and <code>-themes</code>.</p>
+</div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="files-written">8. Files written<a class="anchor" aria-label="anchor" href="#files-written"></a>
 </h2>
 <p>Everything the workflow saved to disk:</p>
 <div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">

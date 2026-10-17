@@ -41,15 +41,15 @@ library(scoranet)
 Single-cell experiments often produce hundreds of differentially expressed genes per cell type, and gene ontology (GO) over-representation analysis on those genes can return dozens of overlapping, redundant terms. **scoranet** (Single-Cell Over-Representation Analysis NETworks) turns that list into a map of biological programs to help make sense of your results!
 
 > [!IMPORTANT]
-> scoranet is compatible with Seurat v4 and v5!
+> **scoranet is compatible with Seurat v4 and v5!**
 
 For each cell type, scoranet:
 
-1. **Tests for differential expression** between two conditions within each cluster
+1. **Tests for differential expression** between two conditions within each cluster using Seurat's native `FindMarkers` (Wilcoxon DE), with capabilities for layer-handling if using Seurat v5.
 
 2. **Runs GO over-representation analysis** on the DEGs, optionally using only the genes that were actually tested as the background, and optionally splitting up- and down-regulated genes.
 
-3. **Builds a pathway overlap network**, connecting GO terms that share DE genes via Jaccard similarity index, and groups them into modules with Leiden clustering.
+3. **Builds a pathway overlap network**, connecting GO terms that share DE genes via Jaccard Similarity and grouping them into modules with Leiden clustering. Each term is represented by its DE genes (the genes annotated to the term that are also DEGs). See [Reading the results](https://mikemartinez99.github.io/scoranet/articles/ifnb-example.html#reading-the-results) in the vignette for the formula and how to read every output.
 
 4. **Names each module** using higher-level terms from the GO hierarchy, and colours terms by whether their genes go up, down, or both.
 

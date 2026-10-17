@@ -36,6 +36,17 @@ plot with clusters as columns and genes as rows. Dot size is the share of
 the cluster's terms that contain the gene; colour is the gene's log2 fold
 change.
 }
+\details{
+A gene's \emph{share} in cluster \eqn{c} is
+\eqn{n_{terms}(g, c) / N_c}: the number of the cluster's GO terms whose DE
+genes include \eqn{g}, divided by the number of terms in the cluster. Genes
+are ranked by \eqn{n_{terms}}, with ties broken by larger
+\eqn{|\log_2 FC|}, and the top \code{top_n} are shown. This measures how
+widely a gene is annotated across the cluster, not how specific it is to
+that cluster: broadly annotated genes can drive several clusters, and in a
+two-term cluster every shared gene has a share of 100\\%. Dot sizes span the
+range of shares shown (not 0--100\\%), so read exact values from the legend.
+}
 \seealso{
 \code{\link{run_network_diagnostics}}
 }

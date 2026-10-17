@@ -207,6 +207,16 @@ plot_overlap_threshold <- function(net_result,
 #' the cluster's terms that contain the gene; colour is the gene's log2 fold
 #' change.
 #'
+#' A gene's \emph{share} in cluster \eqn{c} is
+#' \eqn{n_{terms}(g, c) / N_c}: the number of the cluster's GO terms whose DE
+#' genes include \eqn{g}, divided by the number of terms in the cluster. Genes
+#' are ranked by \eqn{n_{terms}}, with ties broken by larger
+#' \eqn{|\log_2 FC|}, and the top \code{top_n} are shown. This measures how
+#' widely a gene is annotated across the cluster, not how specific it is to
+#' that cluster: broadly annotated genes can drive several clusters, and in a
+#' two-term cluster every shared gene has a share of 100\%. Dot sizes span the
+#' range of shares shown (not 0--100\%), so read exact values from the legend.
+#'
 #' @param net_result One network result from \code{\link{run_comparison_networks}}
 #'   or \code{\link{generate_overlap_network}} (it must contain
 #'   \code{term_genes} and \code{go_term_df}).
@@ -274,10 +284,23 @@ plot_driver_genes <- function(net_result, de_df = NULL, top_n = 5,
   drivers$cluster_label <- factor(paste("Cluster", drivers$cluster),
                                   levels = paste("Cluster", sort(unique(drivers$cluster))))
 
+  # Size spans the observed range of shares, not 0 to 100%, so close values
+  # (e.g. 88% vs 100%) are still told apart. Equal shares get one size.
+  share_range <- range(drivers$share)
+  share_labels <- function(x) paste0(round(100 * x), "%")
+  size_scale <- if (diff(share_range) < 1e-9) {
+    ggplot2::scale_size(name = "Share of\ncluster terms", range = c(5, 5),
+                        breaks = share_range[1], labels = share_labels)
+  } else {
+    ggplot2::scale_size(name = "Share of\ncluster terms", range = c(1.5, 7),
+                        limits = share_range,
+                        breaks = unique(seq(share_range[1], share_range[2], length.out = 4)),
+                        labels = share_labels)
+  }
+
   p <- ggplot2::ggplot(drivers, ggplot2::aes(x = .data$cluster_label, y = .data$gene,
                                              size = .data$share)) +
-    ggplot2::scale_size_area(name = "Share of\ncluster terms", max_size = 7,
-                             labels = function(x) paste0(round(100 * x), "%")) +
+    size_scale +
     ggplot2::labs(title = title, x = NULL, y = NULL) +
     ggplot2::theme_bw() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))

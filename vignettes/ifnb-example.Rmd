@@ -87,7 +87,7 @@ de_results <- run_cluster_de(
 #> * Up in CTRL: 374
 #> 
 #> i Running DE for "CD4 Naive T" (STIM vs CTRL)
-#> v Running DE for "CD4 Naive T" (STIM vs CTRL) [870ms]
+#> v Running DE for "CD4 Naive T" (STIM vs CTRL) [871ms]
 #> 
 #> * Tested genes: 526
 #> * DEGs: 202
@@ -95,7 +95,7 @@ de_results <- run_cluster_de(
 #> * Up in CTRL: 42
 #> 
 #> i Running DE for "B" (STIM vs CTRL)
-#> v Running DE for "B" (STIM vs CTRL) [618ms]
+#> v Running DE for "B" (STIM vs CTRL) [634ms]
 #> 
 #> * Tested genes: 812
 #> * DEGs: 263
@@ -335,8 +335,9 @@ dx$networks[["CD14 Mono"]]$leiden_sweep
 </div>
 
 A good resolution sits on a plateau where the cluster count is steady,
-modularity is high, and stability (agreement between random seeds) is close to
-1. Here the default resolution of 1 sits at the modularity peak with perfect
+modularity is high, and stability (agreement between random seeds, measured as
+the adjusted Rand index) is close to 1. Section 7 defines each metric.
+Here the default resolution of 1 sits at the modularity peak with perfect
 stability, so we keep it. Modularity is modest because nearly every term in
 this network is part of one connected interferon response.
 
@@ -504,7 +505,8 @@ knitr::kable(
 
 ## Driver genes
 
-Which genes is each cluster built on?
+Which genes is each cluster built on? A gene's share is the fraction of the
+cluster's terms that contain it (defined in Section 7).
 
 
 ``` r
@@ -651,7 +653,178 @@ The down-regulated genes give a much smaller network of
 ribosome biogenesis), the same signal as the translation cluster in the
 combined network.
 
-# 7. Files written
+# 7. Reading the results
+
+This section defines every quantity the workflow reports and every column in
+the files it writes.
+
+## How the network is built
+
+**Jaccard overlap.** Each GO term is represented by its DE genes: the genes
+annotated to the term that are also in the DEG list. For two terms with DE gene
+sets $A$ and $B$, the Jaccard overlap is
+
+$$J(A, B) = \frac{|A \cap B|}{|A \cup B|},$$
+
+the number of DE genes the terms share divided by the number of DE genes in
+either. It runs from 0 (no shared genes) to 1 (identical gene sets). For
+example, a term with DE genes {*ISG15*, *IFIT1*, *IFIT3*, *MX1*} and one with
+{*IFIT1*, *IFIT3*, *OAS1*} share 2 of 5 distinct genes, so $J = 0.4$.
+
+**Edges.** Two terms are connected when $J \ge$ `overlap_threshold` (0.2
+here), and the edge width shows $J$. Terms with no edge at that threshold are
+**isolates** and are dropped from the network.
+
+**Node size** grows with the number of DE genes in the term (on a log scale).
+
+**Degree** is the number of other terms a term is connected to. High-degree
+terms are hubs: their genes overlap with many other terms, which is typical of
+broad parent terms such as "immune response".
+
+## Direction
+
+For each term, using only its DE genes:
+
+- `n_up` and `n_down` are the numbers of genes with positive and negative
+  log2 fold change (up in `STIM` and up in `CTRL` here).
+- `avg_log2FC` and `median_log2FC` are the mean and median log2 fold change.
+  The median is less affected by one gene with an extreme fold change.
+- The **direction z-score** is
+  $$z = \frac{n_{up} - n_{down}}{\sqrt{n_{up} + n_{down}}}.$$
+  It combines how consistently the genes move with how many genes support it:
+  9 up and 1 down gives $z = 2.5$; 3 up and 2 down gives $z = 0.45$; a single
+  up gene gives $z = 1$.
+- `regulation` calls a term `up` when $z \ge$ `zscore_threshold` (default 1),
+  `down` when $z \le -$`zscore_threshold`, and `mixed` otherwise.
+
+This direction z-score is not the same as the `zScore` column that
+`clusterProfiler` adds to the ORA results, which measures enrichment, not
+direction (see below).
+
+## Clustering
+
+**Leiden clustering** groups terms that are more densely connected to each
+other than to the rest of the network. Edge weights ($J$) are used, so
+strongly overlapping terms pull harder.
+
+**Resolution** sets how finely the network is split: higher values give more,
+smaller clusters.
+
+**Modularity** scores how well a partition separates the network. It is the
+share of edge weight that falls within clusters, minus the share expected if
+edges were placed at random while keeping each term's total edge weight. Values
+near 0 mean no better than random; values above about 0.3 indicate clear
+structure. The sweep always reports standard modularity (resolution 1), so it
+can be compared across resolutions.
+
+**Adjusted Rand index (ARI)** measures how well two partitions of the same
+terms agree. It counts pairs of terms that both partitions put together, or
+both keep apart, and corrects for the agreement expected by chance. It is 1
+when the partitions are identical and about 0 when they agree no more than
+random partitions would. **Stability** in the sweep is the mean ARI over every
+pair of random seeds at a resolution. A value of 1 means the clustering does
+not depend on the seed.
+
+## Cluster themes and the ratios on the network
+
+Each cluster is labelled with up to two GO terms that its terms fall under in
+the GO hierarchy (its "ancestors"). A label such as
+
+> viral process / response to type I interferon (12/16)
+
+means that 12 of the cluster's 16 terms are one of these ancestors or a
+descendant of one. An ancestor is only used if it covers at least
+`theme_ancestor_min_share` of the cluster (default 15%) and has at most
+`theme_ancestor_max_size` descendant terms (default 1,000, to exclude very
+generic terms). Among those, ancestors are picked one at a time to cover as
+many still-uncovered terms as possible, weighted by how specific they are.
+When no ancestor qualifies, the label falls back to the hub term and says
+"(hub; no shared GO parent)", which often means the cluster mixes unrelated
+terms.
+
+The other label styles (`label_by` in `plot_network()`) are:
+
+- `keywords`: the most distinctive words in the cluster's term names,
+  down-weighting words common to all clusters.
+- `phrase`: the top term name, after merging near-identical names.
+- `hub`: the cluster's highest-degree term.
+
+## Driver genes
+
+For each cluster $c$ with $N_c$ terms, a gene's **share** is
+
+$$\text{share}(g, c) = \frac{n_{terms}(g, c)}{N_c},$$
+
+where $n_{terms}(g, c)$ is the number of the cluster's terms whose DE genes
+include $g$. The genes with the highest $n_{terms}$ are the cluster's drivers
+(ties are broken by larger $|\log_2 FC|$). Dot colour is the gene's log2 fold
+change, and dot size spans the range of shares shown, so read exact values
+from the legend.
+
+A high share means a gene is annotated to most of the cluster's terms, so the
+cluster's theme rests on it. It does not mean the gene is specific to that
+cluster: broadly annotated genes such as *IL1B* can drive several clusters,
+and in a two-term cluster every shared gene has a share of 100%.
+
+## Output files
+
+### Differential expression (`DE/`)
+
+`<cell type>_DE_Results.csv` holds the DEGs and `<cell type>_tested_genes.csv`
+every gene `FindMarkers()` tested. Columns:
+
+| Column | Meaning |
+|---|---|
+| `p_val` | Unadjusted p-value (Wilcoxon rank-sum test by default) |
+| `avg_log2FC` | log2 fold change of mean expression, `ident1` vs `ident2`; positive = higher in `ident1` |
+| `pct.1`, `pct.2` | Fraction of cells expressing the gene in `ident1` and `ident2` |
+| `p_val_adj` | Bonferroni-adjusted p-value (over all genes in the dataset) |
+| `gene`, `cluster`, `comparison` | Gene symbol, cell type, and `"<ident1>_vs_<ident2>"` |
+| `res` | DEGs only: `"Upregulated in <ident1>"` or `"Upregulated in <ident2>"` |
+
+A gene is a DEG when `p_val_adj` $\le$ `padj_thresh` (0.05) and
+$|$`avg_log2FC`$| >$ `logfc_thresh` (0.5).
+
+### GO over-representation (`ORA/`)
+
+`<cell type>_GO_ORA_Results.csv` holds one row per enriched GO term:
+
+| Column | Meaning |
+|---|---|
+| `ID`, `Description` | GO ID and term name |
+| `GeneRatio` | $k/n$: DEGs in the term / DEGs annotated to any tested GO term |
+| `BgRatio` | $M/N$: background genes in the term / background genes annotated to any tested GO term |
+| `RichFactor` | $k/M$: the fraction of the term's background genes that are DEGs |
+| `FoldEnrichment` | $(k/n) / (M/N)$: how many times more often the term appears among DEGs than in the background |
+| `zScore` | Enrichment z-score from `clusterProfiler`: how far $k$ is above the count expected by chance, in standard deviations. Not the direction z-score |
+| `pvalue` | One-sided hypergeometric test p-value |
+| `p.adjust` | Benjamini-Hochberg adjusted p-value; terms with `p.adjust` < 0.05 enter the network |
+| `qvalue` | Storey q-value |
+| `geneID` | The term's DEGs, separated by `/` |
+| `Count` | $k$, the number of DEGs in the term |
+| `geneRatio_num`, `geneRatio_den` | $k$ and $n$ as numbers, added by `write_go()` |
+
+The background is every gene tested in the cell type when
+`use_tested_universe = TRUE`. Only GO terms with 5 to 300 annotated
+background genes are tested. `GO_ORA_QC_summary.csv` lists, for each cell
+type, how many GO terms were `tested`, how many were `retained` as
+significant, and the proportion (`prop`); with `simplify = TRUE` it adds
+`after_simplify`, the count left after redundant terms are merged.
+
+### Networks (`<comparison>/networks/`)
+
+| File | One row per | Columns |
+|---|---|---|
+| `<cell type>_network_summary.csv` | metric | `nodes`, `edges` and `clusters` counts |
+| `<cell type>-cluster-stats.csv` | cluster | `cluster`; `avg_degree`, the mean degree of its terms (how densely connected it is); `n_terms` |
+| `<cell type>-cluster-membership.csv` | GO term | `go_term`, `cluster`, `degree`, `regulation`, `avg_log2FC`, `median_log2FC`, `n_up`, `n_down`, `zscore` (direction), `go_id`, `leiden_resolution`, and `genes` (the term's DE genes, separated by `/`). Sorted by cluster, then degree |
+| `<cell type>-cluster-themes.csv` | cluster | `cluster`, `n_terms`, `ancestor` (names joined by ` / `), `ancestor_id`, `ancestor_n_covered` (the numerator in the plot labels), `keywords`, `phrase`, `hub` |
+
+`network_tables(net)` returns the same four tables in R. The PNG files are the
+four `plot_network()` types: `-regulation`, `-clustered-leiden`, `-zscore` and
+`-themes`.
+
+# 8. Files written
 
 Everything the workflow saved to disk:
 

@@ -87,6 +87,22 @@ test_that("plot_driver_genes shows at most top_n genes per cluster", {
   unlink(outdir, recursive = TRUE)
 })
 
+test_that("plot_driver_genes sizes dots across the observed share range", {
+  inp <- mock_diag_inputs()
+  outdir <- paste0(tempdir(), "/test_diag_driver_size/")
+  net <- mock_diag_networks(inp, outdir)[["Fib A_1"]]
+
+  p <- plot_driver_genes(net, top_n = 3)
+  size <- ggplot2::ggplot_build(p)$data[[1]]$size
+  if (diff(range(p$data$share)) > 0) {
+    expect_equal(range(size), c(1.5, 7))
+  } else {
+    expect_true(all(size == 5))
+  }
+
+  unlink(outdir, recursive = TRUE)
+})
+
 test_that("plot_comparison_overview counts DEGs, terms, and clusters", {
   inp <- mock_diag_inputs()
   outdir <- paste0(tempdir(), "/test_diag_overview/")

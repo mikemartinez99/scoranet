@@ -92,13 +92,13 @@
 </h2>
 <p>Single-cell experiments often produce hundreds of differentially expressed genes per cell type, and gene ontology (GO) over-representation analysis on those genes can return dozens of overlapping, redundant terms. <strong>scoranet</strong> (Single-Cell Over-Representation Analysis NETworks) turns that list into a map of biological programs to help make sense of your results!</p>
 <blockquote>
-<p>[!IMPORTANT] scoranet is compatible with Seurat v4 and v5!</p>
+<p>[!IMPORTANT] <strong>scoranet is compatible with Seurat v4 and v5!</strong></p>
 </blockquote>
 <p>For each cell type, scoranet:</p>
 <ol style="list-style-type: decimal">
-<li><p><strong>Tests for differential expression</strong> between two conditions within each cluster</p></li>
+<li><p><strong>Tests for differential expression</strong> between two conditions within each cluster using Seurat’s native <code>FindMarkers</code> (Wilcoxon DE), with capabilities for layer-handling if using Seurat v5.</p></li>
 <li><p><strong>Runs GO over-representation analysis</strong> on the DEGs, optionally using only the genes that were actually tested as the background, and optionally splitting up- and down-regulated genes.</p></li>
-<li><p><strong>Builds a pathway overlap network</strong>, connecting GO terms that share DE genes via Jaccard similarity index, and groups them into modules with Leiden clustering.</p></li>
+<li><p><strong>Builds a pathway overlap network</strong>, connecting GO terms that share DE genes via Jaccard Similarity and grouping them into modules with Leiden clustering. Each term is represented by its DE genes (the genes annotated to the term that are also DEGs). See <a href="https://mikemartinez99.github.io/scoranet/articles/ifnb-example.html#reading-the-results">Reading the results</a> in the vignette for the formula and how to read every output.</p></li>
 <li><p><strong>Names each module</strong> using higher-level terms from the GO hierarchy, and colours terms by whether their genes go up, down, or both.</p></li>
 <li><p><strong>Checks the settings</strong> with built-in diagnostics for the overlap threshold, Leiden resolution, and the genes driving each module to help you fine-tune your figures and biological interpretation.</p></li>
 </ol>
