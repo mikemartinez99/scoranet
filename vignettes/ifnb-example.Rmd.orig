@@ -256,9 +256,10 @@ plot_network(net, "regulation")
 ```
 
 The `zscore` plot shows how strongly each term leans one way, on a continuous
-scale. The darkest red terms sit at the centre of the antiviral response; the
-few blue terms, up in `CTRL`, belong to the small translation and
-proliferation clusters.
+scale. The darkest red terms are the core defence and innate immune terms of
+the interferon response. The four blue terms, up in `CTRL`, form the two small
+clusters (translation and the broad proliferation terms); one pale term in the
+immune cluster is mixed, with about as many genes going up as down.
 
 ```{r plot-zscore, fig.width = 9.5, fig.height = 8}
 plot_network(net, "zscore")
@@ -276,8 +277,12 @@ The `themes` plot outlines each Leiden cluster and labels it with the GO terms
 its members fall under in the GO hierarchy, with how many of the cluster's
 terms they cover. The two large clusters separate the direct antiviral
 response (viral process, response to type I interferon) from the broader
-immune and cytokine response; the small clusters capture translation
-(down in `STIM`) and cell proliferation.
+innate immune response. Of the two small clusters, translation is clearly down
+in `STIM`. The other holds two broad "regulation of cell population
+proliferation" terms; it leans only weakly down and is built from cytokine,
+chemokine and matrix genes that carry proliferation annotations (see the driver
+genes below), so it is better read as an annotation catch-all than as a change
+in proliferation.
 
 ```{r plot-themes, fig.width = 11, fig.height = 8}
 plot_network(net, "themes", min_terms = 2)
@@ -318,9 +323,15 @@ Which genes is each cluster built on?
 dx$networks[["CD14 Mono"]]$driver_genes
 ```
 
-The antiviral cluster is built on the *OAS* and *IFITM* families, the
-cytokine cluster on *GBP5*, *CASP1* and *IL1B*, and the translation cluster on
-ribosomal protein genes that go down after stimulation.
+The antiviral cluster is built on the *OAS* and *IFITM* families. The innate
+immune cluster shares *OAS1* and *OAS3* and adds *GBP5* and *CASP1*, all up in
+`STIM`. *IL1B* also runs through most of its terms but goes **down** (log2FC
+about -2.7): type I interferon is known to suppress IL-1β production
+(Guarda et al. 2011, *Immunity*), so this module is an interferon-driven
+innate response, not an IL-1β-driven one. The translation cluster is built on
+ribosomal protein genes that go down after stimulation, and the small
+"proliferation" cluster on *CXCL10*, *TNFSF13B* and *CD38* (up) with *IL1B* and
+*VCAN* (down).
 
 ## Overview across cell types
 
@@ -374,8 +385,12 @@ knitr::kable(head(module[, c("go_term", "cluster", "degree", "regulation")], 10)
 # 6. Splitting by direction
 
 With `split_direction = TRUE`, ORA runs separately on up- and down-regulated
-genes, and a network is built for each direction. This keeps a smaller set of
-down-regulated genes from being drowned out by the up-regulated ones.
+genes, and a network is built for each direction. Each test is then made
+against fewer, more coherent genes, which helps in two cases: when one
+direction has far fewer DEGs and would be drowned out by the other, and, as
+here, when DEGs make up a large share of the background (half of the tested
+genes in CD14 monocytes, see Section 2), which dilutes a combined test. Every
+module in a split network also has a single direction.
 
 ```{r split, message = FALSE, fig.keep = "none"}
 go_split <- run_go_ora(
@@ -404,8 +419,16 @@ plot_network(net_split[["CD14 Mono_up"]], "themes")
 Built from the up-regulated genes alone, the CD14 monocyte response resolves
 into many distinct modules: type I interferon production, interleukin-1
 production, chemokine response and leukocyte chemotaxis, adaptive immune
-activation, and more. In the combined network these were merged into two
-large clusters.
+activation, and more. Most of these terms were not enriched in the combined
+analysis at all: it found `r nrow(as.data.frame(go_results[["CD14 Mono"]]))`
+enriched terms, while the up-regulated genes alone give
+`r nrow(as.data.frame(go_split[["CD14 Mono"]]$up))`. The interleukin-1 production module reflects regulators of IL-1 that go
+up (such as *GBP5* and *CASP1*), not *IL1B* itself, which goes down.
+
+The down-regulated genes give a much smaller network of
+`r nrow(net_split[["CD14 Mono_down"]]$go_term_df)` terms (translation and
+ribosome biogenesis), the same signal as the translation cluster in the
+combined network.
 
 # 7. Files written
 
