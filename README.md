@@ -3,9 +3,7 @@
 **Single-cell differential expression, GO over-representation analysis, and pathway overlap networks.** Developed by Mike Martinez.
 
  ![Version](https://img.shields.io/badge/version-0.1.0-blue)
- [![pkgdown documentation](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://dartmouth-data-analytics-core.github.io/GDSCtools/index.html)
  ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
- [![codecov](https://codecov.io/gh/dartmouth-data-analytics-core/GDSCtools/branch/main/graph/badge.svg)](https://codecov.io/gh/dartmouth-data-analytics-core/GDSCtools)
 
 > [!WARNING]
 > **🚧 In development:** functions and defaults may still change between versions.
