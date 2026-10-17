@@ -10,3 +10,4 @@
 ^test_outputs$
 ^testing\.R$
 ^R/ToDo\.md$
+^codecov\.yml$
