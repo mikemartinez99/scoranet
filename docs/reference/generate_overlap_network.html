@@ -292,6 +292,12 @@ node positions differ from the other plots). <code>zscore</code> is
 
 <p>When <code>outdir</code> is non-<code>NULL</code>, the following files are written:</p><ul><li><p><code>&lt;file_stem&gt;_network_summary.csv</code> – node/edge/cluster counts.</p></li>
 <li><p><code>&lt;file_stem&gt;-cluster-stats.csv</code> – per-cluster average degree.</p></li>
+<li><p><code>&lt;file_stem&gt;-cluster-membership.csv</code> – every GO term in the
+network with its Leiden cluster: the columns of <code>go_term_df</code> plus
+<code>genes</code>, the term's DE genes separated by <code>"/"</code>. Sorted by
+cluster, then by degree.</p></li>
+<li><p><code>&lt;file_stem&gt;-cluster-themes.csv</code> – one row per cluster with
+its size and candidate labels (<code>cluster_themes</code>).</p></li>
 <li><p><code>&lt;file_stem&gt;-plain.png</code> – <code>plots$plain</code>: network
 coloured by direction (red = up in <code>ident1</code>, blue = up in
 <code>ident2</code>, grey = mixed).</p></li>

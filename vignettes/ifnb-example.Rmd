@@ -20,12 +20,15 @@ vignette: >
 
 
 This vignette runs the full `scoranet` workflow on a real dataset and shows
-every kind of output it produces.
+every kind of output it produces: console summaries, result tables, files
+written to disk, network plots, and diagnostic figures.
 
-The data highlighted in this vignette are the interferon-beta stimulated PBMCs from Kang et al. (2018),
+The data are the interferon-beta stimulated PBMCs from Kang et al. (2018),
 *Nature Biotechnology* 36, 89-94, distributed as `ifnb` by the
 [SeuratData](https://github.com/satijalab/seurat-data) package. Interferon-beta
-triggers a strong, well-characterised antiviral response, perfect for profiling functional enrichment results.
+triggers a strong, well-characterised antiviral response, which makes it a
+good test: the workflow should recover interferon signalling in every cell
+type.
 
 # Setup
 
@@ -44,7 +47,7 @@ ifnb <- UpdateSeuratObject(ifnb)
 ifnb <- NormalizeData(ifnb, verbose = FALSE)
 
 table(ifnb$seurat_annotations, ifnb$stim)[c("CD14 Mono", "CD4 Naive T", "B"), ]
-#>
+#>              
 #>               CTRL STIM
 #>   CD14 Mono   2215 2147
 #>   CD4 Naive T  978 1526
@@ -76,35 +79,33 @@ de_results <- run_cluster_de(
   ident2      = "CTRL"
 )
 #> i Running DE for "CD14 Mono" (STIM vs CTRL)
-#> v Running DE for "CD14 Mono" (STIM vs CTRL) [6.7s]
-#>
+#> v Running DE for "CD14 Mono" (STIM vs CTRL) [6.3s]
+#> 
 #> * Tested genes: 1408
 #> * DEGs: 704
 #> * Up in STIM: 330
 #> * Up in CTRL: 374
-#>
+#> 
 #> i Running DE for "CD4 Naive T" (STIM vs CTRL)
-#> v Running DE for "CD4 Naive T" (STIM vs CTRL) [998ms]
-#>
+#> v Running DE for "CD4 Naive T" (STIM vs CTRL) [935ms]
+#> 
 #> * Tested genes: 526
 #> * DEGs: 202
 #> * Up in STIM: 160
 #> * Up in CTRL: 42
-#>
+#> 
 #> i Running DE for "B" (STIM vs CTRL)
-#> v Running DE for "B" (STIM vs CTRL) [705ms]
-#>
+#> v Running DE for "B" (STIM vs CTRL) [657ms]
+#> 
 #> * Tested genes: 812
 #> * DEGs: 263
 #> * Up in STIM: 187
 #> * Up in CTRL: 76
-#>
+#> 
 ```
 
 Each cell type returns two tables: `degs` (genes passing the adjusted p-value
-and fold-change cutoffs) and `tested` (every gene `FindMarkers` tested). The latter is useful if
-you are specifically using only the celltype-specific tested genes as over-representation background universe.
-Otherwise, all profiled genes in the underlying seurat object should be used.
+and fold-change cutoffs) and `tested` (every gene `FindMarkers` tested).
 
 
 ``` r
@@ -113,7 +114,7 @@ names(de_results[["CD14 Mono"]])
 
 c(degs = nrow(de_results[["CD14 Mono"]]$degs),
   tested = nrow(de_results[["CD14 Mono"]]$tested))
-#>   degs tested
+#>   degs tested 
 #>    704   1408
 ```
 
@@ -143,6 +144,7 @@ knitr::kable(
 |IFIT2    |      4.765| 0.961| 0.039|         0|Upregulated in STIM |
 
 
+
 The strongest changes are classic interferon-stimulated genes and chemokines
 (*CCL8*, *CXCL10*, *ISG15*, and the *IFIT* family), exactly what
 interferon-beta should induce. CD14 monocytes respond most strongly: about half of their tested genes
@@ -154,8 +156,8 @@ are DEGs.
 ``` r
 write_de(de_results, outSubDir = paste0(out_dir, "/DE/"))
 list.files(file.path(out_dir, "DE"))
-#> [1] "B_DE_Results.csv"             "B_tested_genes.csv"
-#> [3] "CD14_Mono_DE_Results.csv"     "CD14_Mono_tested_genes.csv"
+#> [1] "B_DE_Results.csv"             "B_tested_genes.csv"          
+#> [3] "CD14_Mono_DE_Results.csv"     "CD14_Mono_tested_genes.csv"  
 #> [5] "CD4_Naive_T_DE_Results.csv"   "CD4_Naive_T_tested_genes.csv"
 ```
 
@@ -175,22 +177,22 @@ go_results <- run_go_ora(
   ont                 = "BP",
   outputDir           = paste0(out_dir, "/ORA/")
 )
-#>
-#>
+#> 
+#> 
 #> -- GO set: CD14 Mono --
-#>
+#> 
 #> Genesets tested: 2846
 #> After filtering: 44
 #> Retention proportion: 0.015
-#>
+#> 
 #> -- GO set: CD4 Naive T --
-#>
+#> 
 #> Genesets tested: 1520
 #> After filtering: 65
 #> Retention proportion: 0.043
-#>
+#> 
 #> -- GO set: B --
-#>
+#> 
 #> Genesets tested: 1940
 #> After filtering: 90
 #> Retention proportion: 0.046
@@ -255,7 +257,7 @@ universe being appropriately conservative, not a lack of signal.
 ``` r
 write_go(go_results, outSubDir = paste0(out_dir, "/ORA/"))
 list.files(file.path(out_dir, "ORA"))
-#> [1] "B_GO_ORA_Results.csv"           "CD14_Mono_GO_ORA_Results.csv"
+#> [1] "B_GO_ORA_Results.csv"           "CD14_Mono_GO_ORA_Results.csv"  
 #> [3] "CD4_Naive_T_GO_ORA_Results.csv" "GO_ORA_QC_summary.csv"
 ```
 
@@ -345,8 +347,8 @@ the settings used, and four editable `ggplot` objects:
 ``` r
 net <- net_results[["CD14 Mono"]]
 names(net)
-#>  [1] "network"            "clustering"         "overlap_matrix"     "go_term_df"
-#>  [5] "cluster_stats"      "leiden_resolution"  "objective_function" "overlap_threshold"
+#>  [1] "network"            "clustering"         "overlap_matrix"     "go_term_df"        
+#>  [5] "cluster_stats"      "leiden_resolution"  "objective_function" "overlap_threshold" 
 #>  [9] "seed"               "term_genes"         "cluster_themes"     "plots"
 names(net$plots)
 #> [1] "plain"  "leiden" "zscore" "themes"
@@ -438,7 +440,9 @@ knitr::kable(net$cluster_themes[, c("cluster", "n_terms", "ancestor",
 ## Term-level results
 
 `go_term_df` lists every term in the network with its cluster and direction
-statistics:
+statistics. It is also saved, with each term's DE genes, as
+`<cell type>-cluster-membership.csv`, and the cluster labels as
+`<cell type>-cluster-themes.csv`:
 
 
 ``` r
@@ -606,48 +610,58 @@ Everything the workflow saved to disk:
 ``` r
 files <- list.files(out_dir, recursive = TRUE)
 files[!grepl("^default/", files)]
-#>  [1] "DE/B_DE_Results.csv"
-#>  [2] "DE/B_tested_genes.csv"
-#>  [3] "DE/CD14_Mono_DE_Results.csv"
-#>  [4] "DE/CD14_Mono_tested_genes.csv"
-#>  [5] "DE/CD4_Naive_T_DE_Results.csv"
-#>  [6] "DE/CD4_Naive_T_tested_genes.csv"
-#>  [7] "ORA/B_GO_ORA_Results.csv"
-#>  [8] "ORA/CD14_Mono_GO_ORA_Results.csv"
-#>  [9] "ORA/CD4_Naive_T_GO_ORA_Results.csv"
-#> [10] "ORA/GO_ORA_QC_summary.csv"
-#> [11] "ORA_split/GO_ORA_QC_summary.csv"
-#> [12] "STIM_vs_CTRL/networks/B-cluster-stats.csv"
-#> [13] "STIM_vs_CTRL/networks/B-clustered-leiden.png"
-#> [14] "STIM_vs_CTRL/networks/B-plain.png"
-#> [15] "STIM_vs_CTRL/networks/B-themes.png"
-#> [16] "STIM_vs_CTRL/networks/B-zscore.png"
-#> [17] "STIM_vs_CTRL/networks/B_network_summary.csv"
-#> [18] "STIM_vs_CTRL/networks/CD14_Mono-cluster-stats.csv"
-#> [19] "STIM_vs_CTRL/networks/CD14_Mono-clustered-leiden.png"
-#> [20] "STIM_vs_CTRL/networks/CD14_Mono-plain.png"
-#> [21] "STIM_vs_CTRL/networks/CD14_Mono-themes.png"
-#> [22] "STIM_vs_CTRL/networks/CD14_Mono-zscore.png"
-#> [23] "STIM_vs_CTRL/networks/CD14_Mono_all_clusters_wordclouds.png"
-#> [24] "STIM_vs_CTRL/networks/CD14_Mono_network_summary.csv"
-#> [25] "STIM_vs_CTRL/networks/CD4_Naive_T-cluster-stats.csv"
-#> [26] "STIM_vs_CTRL/networks/CD4_Naive_T-clustered-leiden.png"
-#> [27] "STIM_vs_CTRL/networks/CD4_Naive_T-plain.png"
-#> [28] "STIM_vs_CTRL/networks/CD4_Naive_T-themes.png"
-#> [29] "STIM_vs_CTRL/networks/CD4_Naive_T-zscore.png"
-#> [30] "STIM_vs_CTRL/networks/CD4_Naive_T_network_summary.csv"
-#> [31] "STIM_vs_CTRL_split/networks/CD14_Mono_down-cluster-stats.csv"
-#> [32] "STIM_vs_CTRL_split/networks/CD14_Mono_down-clustered-leiden.png"
-#> [33] "STIM_vs_CTRL_split/networks/CD14_Mono_down-plain.png"
-#> [34] "STIM_vs_CTRL_split/networks/CD14_Mono_down-themes.png"
-#> [35] "STIM_vs_CTRL_split/networks/CD14_Mono_down-zscore.png"
-#> [36] "STIM_vs_CTRL_split/networks/CD14_Mono_down_network_summary.csv"
-#> [37] "STIM_vs_CTRL_split/networks/CD14_Mono_up-cluster-stats.csv"
-#> [38] "STIM_vs_CTRL_split/networks/CD14_Mono_up-clustered-leiden.png"
-#> [39] "STIM_vs_CTRL_split/networks/CD14_Mono_up-plain.png"
-#> [40] "STIM_vs_CTRL_split/networks/CD14_Mono_up-themes.png"
-#> [41] "STIM_vs_CTRL_split/networks/CD14_Mono_up-zscore.png"
-#> [42] "STIM_vs_CTRL_split/networks/CD14_Mono_up_network_summary.csv"
+#>  [1] "DE/B_DE_Results.csv"                                              
+#>  [2] "DE/B_tested_genes.csv"                                            
+#>  [3] "DE/CD14_Mono_DE_Results.csv"                                      
+#>  [4] "DE/CD14_Mono_tested_genes.csv"                                    
+#>  [5] "DE/CD4_Naive_T_DE_Results.csv"                                    
+#>  [6] "DE/CD4_Naive_T_tested_genes.csv"                                  
+#>  [7] "ORA/B_GO_ORA_Results.csv"                                         
+#>  [8] "ORA/CD14_Mono_GO_ORA_Results.csv"                                 
+#>  [9] "ORA/CD4_Naive_T_GO_ORA_Results.csv"                               
+#> [10] "ORA/GO_ORA_QC_summary.csv"                                        
+#> [11] "ORA_split/GO_ORA_QC_summary.csv"                                  
+#> [12] "STIM_vs_CTRL/networks/B-cluster-membership.csv"                   
+#> [13] "STIM_vs_CTRL/networks/B-cluster-stats.csv"                        
+#> [14] "STIM_vs_CTRL/networks/B-cluster-themes.csv"                       
+#> [15] "STIM_vs_CTRL/networks/B-clustered-leiden.png"                     
+#> [16] "STIM_vs_CTRL/networks/B-plain.png"                                
+#> [17] "STIM_vs_CTRL/networks/B-themes.png"                               
+#> [18] "STIM_vs_CTRL/networks/B-zscore.png"                               
+#> [19] "STIM_vs_CTRL/networks/B_network_summary.csv"                      
+#> [20] "STIM_vs_CTRL/networks/CD14_Mono-cluster-membership.csv"           
+#> [21] "STIM_vs_CTRL/networks/CD14_Mono-cluster-stats.csv"                
+#> [22] "STIM_vs_CTRL/networks/CD14_Mono-cluster-themes.csv"               
+#> [23] "STIM_vs_CTRL/networks/CD14_Mono-clustered-leiden.png"             
+#> [24] "STIM_vs_CTRL/networks/CD14_Mono-plain.png"                        
+#> [25] "STIM_vs_CTRL/networks/CD14_Mono-themes.png"                       
+#> [26] "STIM_vs_CTRL/networks/CD14_Mono-zscore.png"                       
+#> [27] "STIM_vs_CTRL/networks/CD14_Mono_all_clusters_wordclouds.png"      
+#> [28] "STIM_vs_CTRL/networks/CD14_Mono_network_summary.csv"              
+#> [29] "STIM_vs_CTRL/networks/CD4_Naive_T-cluster-membership.csv"         
+#> [30] "STIM_vs_CTRL/networks/CD4_Naive_T-cluster-stats.csv"              
+#> [31] "STIM_vs_CTRL/networks/CD4_Naive_T-cluster-themes.csv"             
+#> [32] "STIM_vs_CTRL/networks/CD4_Naive_T-clustered-leiden.png"           
+#> [33] "STIM_vs_CTRL/networks/CD4_Naive_T-plain.png"                      
+#> [34] "STIM_vs_CTRL/networks/CD4_Naive_T-themes.png"                     
+#> [35] "STIM_vs_CTRL/networks/CD4_Naive_T-zscore.png"                     
+#> [36] "STIM_vs_CTRL/networks/CD4_Naive_T_network_summary.csv"            
+#> [37] "STIM_vs_CTRL_split/networks/CD14_Mono_down-cluster-membership.csv"
+#> [38] "STIM_vs_CTRL_split/networks/CD14_Mono_down-cluster-stats.csv"     
+#> [39] "STIM_vs_CTRL_split/networks/CD14_Mono_down-cluster-themes.csv"    
+#> [40] "STIM_vs_CTRL_split/networks/CD14_Mono_down-clustered-leiden.png"  
+#> [41] "STIM_vs_CTRL_split/networks/CD14_Mono_down-plain.png"             
+#> [42] "STIM_vs_CTRL_split/networks/CD14_Mono_down-themes.png"            
+#> [43] "STIM_vs_CTRL_split/networks/CD14_Mono_down-zscore.png"            
+#> [44] "STIM_vs_CTRL_split/networks/CD14_Mono_down_network_summary.csv"   
+#> [45] "STIM_vs_CTRL_split/networks/CD14_Mono_up-cluster-membership.csv"  
+#> [46] "STIM_vs_CTRL_split/networks/CD14_Mono_up-cluster-stats.csv"       
+#> [47] "STIM_vs_CTRL_split/networks/CD14_Mono_up-cluster-themes.csv"      
+#> [48] "STIM_vs_CTRL_split/networks/CD14_Mono_up-clustered-leiden.png"    
+#> [49] "STIM_vs_CTRL_split/networks/CD14_Mono_up-plain.png"               
+#> [50] "STIM_vs_CTRL_split/networks/CD14_Mono_up-themes.png"              
+#> [51] "STIM_vs_CTRL_split/networks/CD14_Mono_up-zscore.png"              
+#> [52] "STIM_vs_CTRL_split/networks/CD14_Mono_up_network_summary.csv"
 ```
 
 # Session information
@@ -658,80 +672,80 @@ sessionInfo()
 #> R version 4.4.1 (2024-06-14)
 #> Platform: aarch64-apple-darwin20
 #> Running under: macOS Sonoma 14.6
-#>
+#> 
 #> Matrix products: default
-#> BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib
+#> BLAS:   /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRblas.0.dylib 
 #> LAPACK: /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/lib/libRlapack.dylib;  LAPACK version 3.12.0
-#>
+#> 
 #> locale:
 #> [1] C
-#>
+#> 
 #> time zone: America/New_York
 #> tzcode source: internal
-#>
+#> 
 #> attached base packages:
-#> [1] stats4    stats     graphics  grDevices utils     datasets  methods   base
-#>
+#> [1] stats4    stats     graphics  grDevices utils     datasets  methods   base     
+#> 
 #> other attached packages:
-#>  [1] org.Hs.eg.db_3.20.0     AnnotationDbi_1.68.0    IRanges_2.40.1
-#>  [4] S4Vectors_0.44.0        Biobase_2.66.0          BiocGenerics_0.52.0
-#>  [7] pbmc3k.SeuratData_3.1.4 ifnb.SeuratData_3.1.0   SeuratData_0.2.1
-#> [10] SeuratObject_4.1.4      Seurat_4.4.0            scoranet_0.1.0
-#>
+#>  [1] org.Hs.eg.db_3.20.0     AnnotationDbi_1.68.0    IRanges_2.40.1         
+#>  [4] S4Vectors_0.44.0        Biobase_2.66.0          BiocGenerics_0.52.0    
+#>  [7] pbmc3k.SeuratData_3.1.4 ifnb.SeuratData_3.1.0   SeuratData_0.2.1       
+#> [10] SeuratObject_4.1.4      Seurat_4.4.0            scoranet_1.0.0         
+#> 
 #> loaded via a namespace (and not attached):
-#>   [1] RcppAnnoy_0.0.22        splines_4.4.1           later_1.4.4
-#>   [4] ggplotify_0.1.2         tibble_3.3.0            R.oo_1.27.1
-#>   [7] polyclip_1.10-7         lifecycle_1.0.4         globals_0.18.0
-#>  [10] lattice_0.22-7          MASS_7.3-65             magrittr_2.0.4
-#>  [13] limma_3.60.6            plotly_4.11.0           httpuv_1.6.16
-#>  [16] sctransform_0.4.2       sp_2.2-0                spatstat.sparse_3.1-0
-#>  [19] reticulate_1.43.0       cowplot_1.2.0           pbapply_1.7-4
-#>  [22] DBI_1.2.3               RColorBrewer_1.1-3      abind_1.4-8
-#>  [25] zlibbioc_1.52.0         Rtsne_0.17              purrr_1.1.0
-#>  [28] R.utils_2.13.0          ggraph_2.2.2            yulab.utils_0.2.0
+#>   [1] RcppAnnoy_0.0.22        splines_4.4.1           later_1.4.4            
+#>   [4] ggplotify_0.1.2         tibble_3.3.0            R.oo_1.27.1            
+#>   [7] polyclip_1.10-7         lifecycle_1.0.4         globals_0.18.0         
+#>  [10] lattice_0.22-7          MASS_7.3-65             magrittr_2.0.4         
+#>  [13] limma_3.60.6            plotly_4.11.0           httpuv_1.6.16          
+#>  [16] sctransform_0.4.2       sp_2.2-0                spatstat.sparse_3.1-0  
+#>  [19] reticulate_1.43.0       cowplot_1.2.0           pbapply_1.7-4          
+#>  [22] DBI_1.2.3               RColorBrewer_1.1-3      abind_1.4-8            
+#>  [25] zlibbioc_1.52.0         Rtsne_0.17              purrr_1.1.0            
+#>  [28] R.utils_2.13.0          ggraph_2.2.2            yulab.utils_0.2.0      
 #>  [31] tweenr_2.0.3            rappdirs_0.3.3          GenomeInfoDbData_1.2.13
-#>  [34] enrichplot_1.24.4       ggrepel_0.9.6           irlba_2.3.5.1
-#>  [37] listenv_0.9.1           spatstat.utils_3.1-5    tidytree_0.4.6
-#>  [40] goftest_1.2-3           spatstat.random_3.4-1   fitdistrplus_1.2-4
-#>  [43] parallelly_1.45.1       commonmark_2.0.0        ggwordcloud_0.6.2
-#>  [46] leiden_0.4.3.1          codetools_0.2-20        DOSE_4.0.1
-#>  [49] xml2_1.4.0              ggforce_0.5.0           tidyselect_1.2.1
-#>  [52] aplot_0.2.8             UCSC.utils_1.2.0        farver_2.1.2
-#>  [55] viridis_0.6.5           matrixStats_1.5.0       spatstat.explore_3.5-2
-#>  [58] jsonlite_2.0.0          tidygraph_1.3.1         progressr_0.15.1
-#>  [61] ggridges_0.5.7          survival_3.8-3          systemfonts_1.3.1
-#>  [64] tools_4.4.1             ragg_1.5.0              treeio_1.28.0
-#>  [67] ica_1.0-3               Rcpp_1.1.0              glue_1.8.0
-#>  [70] gridExtra_2.3           xfun_0.53               qvalue_2.36.0
-#>  [73] GenomeInfoDb_1.42.3     dplyr_1.1.4             withr_3.0.2
-#>  [76] fastmap_1.2.0           litedown_0.7            digest_0.6.37
-#>  [79] gridGraphics_0.5-1      R6_2.6.1                mime_0.13
-#>  [82] textshaping_1.0.3       colorspace_2.1-1        scattermore_1.2
-#>  [85] GO.db_3.20.0            tensor_1.5.1            markdown_2.0
-#>  [88] dichromat_2.0-0.1       spatstat.data_3.1-8     RSQLite_2.4.2
-#>  [91] R.methodsS3_1.8.2       tidyr_1.3.1             generics_0.1.4
-#>  [94] data.table_1.17.8       graphlayouts_1.2.2      httr_1.4.7
-#>  [97] htmlwidgets_1.6.4       scatterpie_0.2.5        uwot_0.2.3
-#> [100] pkgconfig_2.0.3         gtable_0.3.6            blob_1.2.4
-#> [103] lmtest_0.9-40           S7_0.2.0                XVector_0.46.0
-#> [106] shadowtext_0.1.5        clusterProfiler_4.14.6  htmltools_0.5.8.1
-#> [109] fgsea_1.30.0            scales_1.4.0            png_0.1-8
-#> [112] spatstat.univar_3.1-4   ggfun_0.2.0             knitr_1.50
-#> [115] reshape2_1.4.4          nlme_3.1-168            zoo_1.8-14
-#> [118] cachem_1.1.0            stringr_1.5.2           KernSmooth_2.23-26
-#> [121] parallel_4.4.1          miniUI_0.1.2            pillar_1.11.1
-#> [124] grid_4.4.1              vctrs_0.6.5             RANN_2.6.2
-#> [127] promises_1.3.3          xtable_1.8-4            cluster_2.1.8.1
-#> [130] evaluate_1.0.5          cli_3.6.5               compiler_4.4.1
-#> [133] rlang_1.1.6             crayon_1.5.3            future.apply_1.11.2
-#> [136] labeling_0.4.3          plyr_1.8.9              fs_1.6.6
-#> [139] stringi_1.8.7           viridisLite_0.4.2       deldir_2.0-4
-#> [142] BiocParallel_1.40.2     Biostrings_2.74.1       lazyeval_0.2.2
-#> [145] spatstat.geom_3.5-0     GOSemSim_2.32.0         Matrix_1.7-3
-#> [148] patchwork_1.3.2         bit64_4.6.0-1           future_1.33.2
-#> [151] ggplot2_4.0.0           KEGGREST_1.44.1         statmod_1.5.0
-#> [154] shiny_1.11.1            ROCR_1.0-11             gridtext_0.1.5
-#> [157] igraph_2.1.4            memoise_2.0.1           ggtree_3.12.0
-#> [160] fastmatch_1.1-6         bit_4.6.0               gson_0.1.0
+#>  [34] enrichplot_1.24.4       ggrepel_0.9.6           irlba_2.3.5.1          
+#>  [37] listenv_0.9.1           spatstat.utils_3.1-5    tidytree_0.4.6         
+#>  [40] goftest_1.2-3           spatstat.random_3.4-1   fitdistrplus_1.2-4     
+#>  [43] parallelly_1.45.1       commonmark_2.0.0        ggwordcloud_0.6.2      
+#>  [46] leiden_0.4.3.1          codetools_0.2-20        DOSE_4.0.1             
+#>  [49] xml2_1.4.0              ggforce_0.5.0           tidyselect_1.2.1       
+#>  [52] aplot_0.2.8             UCSC.utils_1.2.0        farver_2.1.2           
+#>  [55] viridis_0.6.5           matrixStats_1.5.0       spatstat.explore_3.5-2 
+#>  [58] jsonlite_2.0.0          tidygraph_1.3.1         progressr_0.15.1       
+#>  [61] ggridges_0.5.7          survival_3.8-3          systemfonts_1.3.1      
+#>  [64] tools_4.4.1             ragg_1.5.0              treeio_1.28.0          
+#>  [67] ica_1.0-3               Rcpp_1.1.0              glue_1.8.0             
+#>  [70] gridExtra_2.3           xfun_0.53               qvalue_2.36.0          
+#>  [73] GenomeInfoDb_1.42.3     dplyr_1.1.4             withr_3.0.2            
+#>  [76] fastmap_1.2.0           litedown_0.7            digest_0.6.37          
+#>  [79] gridGraphics_0.5-1      R6_2.6.1                mime_0.13              
+#>  [82] textshaping_1.0.3       colorspace_2.1-1        scattermore_1.2        
+#>  [85] GO.db_3.20.0            tensor_1.5.1            markdown_2.0           
+#>  [88] dichromat_2.0-0.1       spatstat.data_3.1-8     RSQLite_2.4.2          
+#>  [91] R.methodsS3_1.8.2       tidyr_1.3.1             generics_0.1.4         
+#>  [94] data.table_1.17.8       graphlayouts_1.2.2      httr_1.4.7             
+#>  [97] htmlwidgets_1.6.4       scatterpie_0.2.5        uwot_0.2.3             
+#> [100] pkgconfig_2.0.3         gtable_0.3.6            blob_1.2.4             
+#> [103] lmtest_0.9-40           S7_0.2.0                XVector_0.46.0         
+#> [106] shadowtext_0.1.5        clusterProfiler_4.14.6  htmltools_0.5.8.1      
+#> [109] fgsea_1.30.0            scales_1.4.0            png_0.1-8              
+#> [112] spatstat.univar_3.1-4   ggfun_0.2.0             knitr_1.50             
+#> [115] reshape2_1.4.4          nlme_3.1-168            zoo_1.8-14             
+#> [118] cachem_1.1.0            stringr_1.5.2           KernSmooth_2.23-26     
+#> [121] parallel_4.4.1          miniUI_0.1.2            pillar_1.11.1          
+#> [124] grid_4.4.1              vctrs_0.6.5             RANN_2.6.2             
+#> [127] promises_1.3.3          xtable_1.8-4            cluster_2.1.8.1        
+#> [130] evaluate_1.0.5          cli_3.6.5               compiler_4.4.1         
+#> [133] rlang_1.1.6             crayon_1.5.3            future.apply_1.11.2    
+#> [136] labeling_0.4.3          plyr_1.8.9              fs_1.6.6               
+#> [139] stringi_1.8.7           viridisLite_0.4.2       deldir_2.0-4           
+#> [142] BiocParallel_1.40.2     Biostrings_2.74.1       lazyeval_0.2.2         
+#> [145] spatstat.geom_3.5-0     GOSemSim_2.32.0         Matrix_1.7-3           
+#> [148] patchwork_1.3.2         bit64_4.6.0-1           future_1.33.2          
+#> [151] ggplot2_4.0.0           KEGGREST_1.44.1         statmod_1.5.0          
+#> [154] shiny_1.11.1            ROCR_1.0-11             gridtext_0.1.5         
+#> [157] igraph_2.1.4            memoise_2.0.1           ggtree_3.12.0          
+#> [160] fastmatch_1.1-6         bit_4.6.0               gson_0.1.0             
 #> [163] ape_5.8-1
 ```

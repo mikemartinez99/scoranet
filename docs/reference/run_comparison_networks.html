@@ -215,7 +215,10 @@ suffix when <code>split_direction = TRUE</code>.</p>
 
 <p>Files are written to <code>&lt;base_outdir&gt;/&lt;comp_label&gt;/networks/</code> with the
 file stem <code>&lt;cluster&gt;</code> (or <code>&lt;cluster&gt;_up</code> / <code>&lt;cluster&gt;_down</code>
-when split). See <code><a href="generate_overlap_network.html">generate_overlap_network</a></code> for the file list.</p>
+when split), including <code>&lt;stem&gt;-cluster-membership.csv</code> (which GO
+terms belong to which Leiden cluster, with their DE genes) and
+<code>&lt;stem&gt;-cluster-themes.csv</code> (one row per cluster with its labels).
+See <code><a href="generate_overlap_network.html">generate_overlap_network</a></code> for the full file list.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
